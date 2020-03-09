@@ -7,7 +7,7 @@
   ],
   "license": "BSD-3-Clause",
   "scripts": {
-    "clean": "rm -Rf client && rm -Rf server",
+    "clean": "rm -Rf client && rm -Rf server && rm -Rf common",
     "deploy": "np --yolo",
     "doc": "jsdoc -c jsdoc.json",
     "prepublishOnly": "npm run clean && npm run transpile",
