@@ -1,4 +1,4 @@
-import Script from '../common/script';
+import Script from '../common/Script';
 import fs from 'fs';
 import path from 'path';
 import camelCase from 'lodash.camelcase';

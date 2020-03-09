@@ -1,4 +1,4 @@
-import Script from '../common/script';
+import Script from '../common/Script';
 
 const serviceFactory = function(Service) {
 
