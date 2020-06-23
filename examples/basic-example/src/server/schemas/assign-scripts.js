@@ -1,9 +1,5 @@
 export default {
-  'script-a': {
-    type: 'string',
-    default: '',
-  },
-  'script-b': {
+  'script-name': {
     type: 'string',
     default: '',
   },

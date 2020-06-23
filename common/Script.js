@@ -41,9 +41,13 @@ class Script {
     return this._scriptState.get('value');
   }
 
+  getError() {
+    return this._scriptState.get('err');
+  }
+
   subscribe(func) {
     const unsubscribe = this._scriptState.subscribe(updates => {
-      if ('args' in updates && 'body' in updates) {
+      if ('args' in updates && 'body' in updates || 'err' in updates) {
         func();
       }
     });
@@ -54,7 +58,8 @@ class Script {
   async detach() {
     if (this._scriptState._client.id === this._scriptState._owner) {
       // we are server side, so, do nothing for now as we would really delete
-      // the state, which is something we don't want to do...
+      // the state, which is something we don't want because it would delete
+      // the script for every clients.
       //
       // so, let's pretend it does what we think it should do for now
       if (this._onDetachFunction) {

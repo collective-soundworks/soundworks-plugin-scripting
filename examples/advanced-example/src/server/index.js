@@ -63,7 +63,6 @@ console.log(`
     server.configureHtmlTemplates({ compile }, path.join('.build', 'server', 'tmpl'))
     server.router.use(serveStatic('public'));
     server.router.use('build', serveStatic(path.join('.build', 'public')));
-    server.router.use('vendors', serveStatic(path.join('.vendors', 'public')));
 
     const playerExperience = new PlayerExperience(server, 'player');
     const scriptEditorExperience = new ScriptEditorExperience(server, 'script-editor');

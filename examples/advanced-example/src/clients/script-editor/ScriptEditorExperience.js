@@ -66,6 +66,7 @@ class PlayerExperience extends Experience {
         }
       },
       deleteScript: async (e) => {
+        console.log('delete script');
         const scriptName = this.currentScript.name;
         await this.scripting.delete(scriptName);
       },
@@ -81,21 +82,24 @@ class PlayerExperience extends Experience {
     const list = this.scripting.state.get('list');
     const assignedScript = this.assignScriptsState.getValues();
 
-    if (this.currentScript) {
-      console.log(this.currentScript.getError());
-    }
-
     render(html`
       <div class="screen" style="padding: 20px;">
         <div>
-          <h2 class="title">assign script to client</h2>
+          <h2 class="title">>assign scripts</h2>
           <!-- could be a loop.. -->
-          <label style="display:block; margin: 12px 0 4px;">assign script:</label>
+          <label style="display:block; margin: 12px 0 4px;">assign script-a:</label>
           <sw-combo-box
             placeholder="select or create script"
             options="${JSON.stringify(list)}"
-            value="${ifDefined(assignedScript['script-name'])}"
-            @change="${(e) => this.eventListeners.assignScript('script-name', e.detail.value)}"
+            value="${ifDefined(assignedScript['script-a'])}"
+            @change="${(e) => this.eventListeners.assignScript('script-a', e.detail.value)}"
+          ></sw-combo-box>
+          <label style="display:block; margin: 12px 0 4px;">assign script-b:</label>
+          <sw-combo-box
+            placeholder="select or create script"
+            options="${JSON.stringify(list)}"
+            value="${ifDefined(assignedScript['script-b'])}"
+            @change="${(e) => this.eventListeners.assignScript('script-b', e.detail.value)}"
           ></sw-combo-box>
         </div>
 
@@ -103,11 +107,11 @@ class PlayerExperience extends Experience {
           <header
             style="margin-bottom: 12px"
           >
-            <h2 class="title">edit scripts</h2>
+            <h2 class="title">>edit scripts</h2>
             <sw-combo-box
               placeholder="select or create script"
               options="${JSON.stringify(list)}"
-              .value="${ifDefined(this.currentScript && this.currentScript.name)}"
+              value="${ifDefined(this.currentScript && this.currentScript.name)}"
               @change="${this.eventListeners.createOrSelectScript}"
             ></sw-combo-box>
             ${this.currentScript
@@ -124,10 +128,6 @@ class PlayerExperience extends Experience {
             value="${ifDefined(this.currentScript && this.currentScript.getValue())}"
             @save="${this.eventListeners.saveScript}"
           ></sw-editor>
-
-          <div>
-            ${ifDefined(this.currentScript && JSON.stringify(this.currentScript.getError()))}
-          </div>
         </div>
       </div>
     `, this.$container);

@@ -25,9 +25,13 @@ class Script {
     return this._scriptState.get('value');
   }
 
+  getError() {
+    return this._scriptState.get('err');
+  }
+
   subscribe(func) {
     const unsubscribe = this._scriptState.subscribe(updates => {
-      if ('args' in updates && 'body' in updates) {
+      if (('args' in updates && 'body' in updates) || ('err' in updates)) {
         func();
       }
     });

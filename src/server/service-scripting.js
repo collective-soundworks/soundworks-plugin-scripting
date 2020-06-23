@@ -4,8 +4,10 @@ import path from 'path';
 import camelCase from 'lodash.camelcase';
 import slugify from 'slugify';
 import mkdirp from 'mkdirp';
-// @note - TypeError: Cannot read property 'transform' of undefined
-// import babel from '@babel/core';
+
+import * as babel from '@babel/core';
+console.log(babel);
+import babelConfig from './babelConfig.js';
 
 const schema = {
   list: {
@@ -31,6 +33,11 @@ const scriptSchema = {
     type: 'string',
     default: '',
   },
+  err: {
+    type: 'any',
+    default: null,
+    nullable: true,
+  }
 };
 
  // cf. https://stackoverflow.com/questions/1007981/how-to-get-function-parameter-names-values-dynamically
@@ -51,7 +58,7 @@ function getArgs(func) {
 // cf. https://github.com/nulltask/function-body-regex
 function getBody(func) {
   func = func.trim();
-  const regExp = /^function\s*\w*\s*\([\w\s,]*\)\s*{([\w\W]*?)}$/;
+  const regExp = /.*function\s*\w*\s*\([\w\s,]*\)\s*{([\w\W]*?)}$/;
   const values = regExp.exec(func);
   return values[1];
 }
@@ -141,24 +148,22 @@ const serviceFactory = function(Service) {
           for (let key in updates) {
             if (key === 'value') {
               const code = updates['value'];
-
-              // @todo - transpile code w/ babel
-              // cf. https://github.com/jamiebuilds/babel-handbook/blob/master/translations/en/user-handbook.md#babel-core
-              // something like:
-              // console.log(babel.transform(code));
+              let exception = false;
 
               try {
-                new Function(`${code}`)();
                 const args = getArgs(code);
                 const body = getBody(code);
-                scriptState.set({ args, body });
+                // babel handles parseing errors
+                const transformed = babel.transform(body, babelConfig);
 
+                scriptState.set({ args, body, err: null });
                 // write to file
                 const filename = path.join(this.options.directory, `${name}.js`);
                 fs.writeFileSync(filename, code);
               } catch(err) {
-                // syntax error, just ignore
+                scriptState.set({ err: err });
                 console.log(err);
+                exception = true;
               }
             }
           }

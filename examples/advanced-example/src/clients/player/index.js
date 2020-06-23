@@ -1,4 +1,5 @@
 import '@babel/polyfill';
+import '@wessberg/pointer-events';
 import { Client } from '@soundworks/core/client';
 import PlayerExperience from './PlayerExperience';
 import initQoS from '../utils/qos';

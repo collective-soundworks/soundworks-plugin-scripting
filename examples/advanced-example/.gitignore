@@ -8,7 +8,6 @@
 # application instance specific
 .db
 .build
-.vendors
 
 # junk files
 package-lock.json

@@ -18,7 +18,7 @@ class PlayerExperience extends Experience {
   async start() {
     super.start();
 
-    this.scripts = {};
+    this.script = null;
 
     this.assignScriptsState = await this.client.stateManager.attach('assign-scripts');
 
@@ -26,58 +26,48 @@ class PlayerExperience extends Experience {
       await this.updateScripts(updates);
     });
 
-    this.updateScripts(this.assignScriptsState.getValues());
-
-    this.eventListeners = {
-      executeScript: (name) => {
-        if (this.scripts[name]) {
-          this.scripts[name].execute(1, 2, 3);
-        }
-      }
-    }
-
     this.renderApp();
+
+    this.updateScripts(this.assignScriptsState.getValues());
   }
 
   async updateScripts(assignedScripts) {
-    console.log(assignedScripts);
     for (let [key, value] of Object.entries(assignedScripts)) {
       switch (key) {
-        case 'script-a':
-        case 'script-b':
+        case 'script-name':
           const scriptName = value;
 
-          if (scriptName) {
-            if (this.scripts[key]) {
-              this.scripts[key].detach();
-            }
+          if (this.script) {
+            await this.script.detach();
+          }
 
-            this.scripts[key] = await this.scripting.attach(scriptName);
-            this.scripts[key].onDetach(() => this.scripts[key] = null);
+          if (scriptName) {
+            this.script = await this.scripting.attach(scriptName);
+            this.renderApp();
+
+            this.script.onDetach(() => this.script = null);
+            // re-execute on update
+            this.script.subscribe(() => {
+              this.script.execute(this.$container.querySelector('.result'), this.client);
+            });
+
+            this.script.execute(this.$container.querySelector('.result'), this.client);
           }
           break;
       }
     }
-
-    this.renderApp();
   }
 
   renderApp() {
-    const msg = `Hello ${this.client.id}`;
-
     render(html`
-      <div class="screen" style="padding: 20px; text-align: center;">
-        <h1 class="title">${msg}</h1>
-        <sw-button
-          style="display:block"
-          text="execute script-a ${this.scripts['script-a'] && this.scripts['script-a'].name}"
-          @click="${(e) => this.eventListeners.executeScript('script-a')}"
-        ></sw-button>
-        <sw-button
-          style="display:block"
-          text="execute script-b ${this.scripts['script-b'] && this.scripts['script-b'].name}"
-          @click="${(e) => this.eventListeners.executeScript('script-b')}"
-        ></sw-button>
+      <div class="screen" style="padding: 20px;">
+        <h1 class="title">Client ${this.client.id}</h1>
+        <p>${this.script ? `> executing script "${this.script.name}"` : ''}</p>
+        <p style="margin:0 0 4px">> result:</p>
+
+        <pre>
+          <code class="result" style="color: white; text-align: left"></code>
+        </pre>
       </div>
     `, this.$container);
   }

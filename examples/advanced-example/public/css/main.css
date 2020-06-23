@@ -74,8 +74,8 @@ html {
 /* helpers
  */
 .huge {
-  font-size: 1.4rem;
-  line-height: 1.6rem;
+  font-size: 3rem;
+  line-height: 3.4rem;
 }
 
 .big {
@@ -114,9 +114,9 @@ html {
   align-self: flex-end;
 }
 
-/*.title {
+.title {
   margin: 20px 0;
-}*/
+}
 
 .align-center {
   text-align: center;
@@ -150,8 +150,8 @@ html {
 }
 
 .title {
-  font-size: 1.4rem;
-  line-height: 1.5rem;
+  font-size: 3rem;
+  line-height: 3.4rem;
   margin: 0 0 6px 0;
 }
 

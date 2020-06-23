@@ -2,6 +2,7 @@
 /client
 /server
 /view
+/common
 
 # others
 /node_modules
