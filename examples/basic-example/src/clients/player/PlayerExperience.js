@@ -48,10 +48,12 @@ class PlayerExperience extends Experience {
             this.script.onDetach(() => this.script = null);
             // re-execute on update
             this.script.subscribe(() => {
-              this.script.execute(this.$container.querySelector('.result'), this.client);
+              this.returnValue = this.script.execute(this.$container.querySelector('.result'), this.client);
+              this.renderApp();
             });
 
-            this.script.execute(this.$container.querySelector('.result'), this.client);
+            this.returnValue = this.script.execute(this.$container.querySelector('.result'), this.client);
+            this.renderApp();
           }
           break;
       }
@@ -68,6 +70,13 @@ class PlayerExperience extends Experience {
         <pre>
           <code class="result" style="color: white; text-align: left"></code>
         </pre>
+        ${this.returnValue ?
+          html`
+            <pre><code>
+returnValue: ${JSON.stringify(this.returnValue)}
+            </code></pre>
+          ` : ''
+        }
       </div>
     `, this.$container);
   }

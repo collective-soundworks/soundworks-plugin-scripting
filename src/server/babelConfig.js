@@ -1,4 +1,5 @@
 export default {
+  parserOpts: { allowReturnOutsideFunction: true },
   presets: [
     ["@babel/preset-env",
       {

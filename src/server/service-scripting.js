@@ -154,9 +154,9 @@ const serviceFactory = function(Service) {
                 const args = getArgs(code);
                 const body = getBody(code);
                 // babel handles parseing errors
-                const transformed = babel.transform(body, babelConfig);
+                const transformed = babel.transformSync(body, babelConfig);
 
-                scriptState.set({ args, body, err: null });
+                scriptState.set({ args, body: transformed.code, err: null });
                 // write to file
                 const filename = path.join(this.options.directory, `${name}.js`);
                 fs.writeFileSync(filename, code);
