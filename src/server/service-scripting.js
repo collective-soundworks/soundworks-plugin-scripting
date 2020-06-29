@@ -6,7 +6,6 @@ import slugify from 'slugify';
 import mkdirp from 'mkdirp';
 
 import * as babel from '@babel/core';
-console.log(babel);
 import babelConfig from './babelConfig.js';
 
 const schema = {
