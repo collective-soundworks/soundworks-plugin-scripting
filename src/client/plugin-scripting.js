@@ -1,8 +1,8 @@
 import Script from '../common/Script';
 
-const serviceFactory = function(Service) {
+const pluginFactory = function(AbstractPlugin) {
 
-  return class ServiceScripting extends Service {
+  return class PluginScripting extends AbstractPlugin {
     constructor(client, name, options) {
       super(client, name);
 
@@ -20,9 +20,23 @@ const serviceFactory = function(Service) {
       this.ready()
     }
 
+    getList() {
+      return this.state.get('list');
+    }
+
+    subscribe(callback) {
+      return this.state.subscribe(callback);
+    }
+
+    async attach(name) {
+      const scriptSchemaName = `s:${this.name}:script:${name}`;
+      const scriptState = await this.client.stateManager.attach(scriptSchemaName);
+      return new Script(scriptState);
+    }
+
     async create(name, value = null) {
       return new Promise((resolve, reject) => {
-        const ackChannel = `s:${this.name}:create-ack-${name}`;
+        const ackChannel = `s:${this.name}:create-ack:${name}`;
 
         this.client.socket.addListener(ackChannel, () => {
           this.client.socket.removeAllListeners(ackChannel);
@@ -33,15 +47,9 @@ const serviceFactory = function(Service) {
       });
     }
 
-    async attach(name) {
-      const scriptSchemaName = `s:${this.name}:script:${name}`;
-      const scriptState = await this.client.stateManager.attach(scriptSchemaName);
-      return new Script(scriptState);
-    }
-
     async delete(name) {
       return new Promise((resolve, reject) => {
-        const ackChannel = `s:${this.name}:delete-ack-${name}`;
+        const ackChannel = `s:${this.name}:delete-ack:${name}`;
 
         this.client.socket.addListener(ackChannel, () => {
           this.client.socket.removeAllListeners(ackChannel);
@@ -54,7 +62,4 @@ const serviceFactory = function(Service) {
   }
 }
 
-// not mandatory
-serviceFactory.defaultName = 'service-scripting';
-
-export default serviceFactory;
+export default pluginFactory;

@@ -5,7 +5,6 @@ class Script {
     this.name = scriptState.get('name');
 
     this._scriptState.subscribe(updates => {
-      // console.log(updates);
       if ('args' in updates && 'body' in updates) {
         const { args, body } = this._scriptState.getValues();
         this._function = new Function(...args, body);
@@ -18,7 +17,7 @@ class Script {
   }
 
   async setValue(value) {
-    await this._scriptState.set({ value });
+    await this._scriptState.set({ requestValue: value });
   }
 
   getValue() {
@@ -31,7 +30,8 @@ class Script {
 
   subscribe(func) {
     const unsubscribe = this._scriptState.subscribe(updates => {
-      if (('args' in updates && 'body' in updates) || ('err' in updates)) {
+      // value is set with arg and body
+      if (('value' in updates) || ('err' in updates)) {
         func();
       }
     });

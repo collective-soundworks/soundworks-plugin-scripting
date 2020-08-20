@@ -4,6 +4,7 @@ import path from 'path';
 import camelCase from 'lodash.camelcase';
 import slugify from 'slugify';
 import mkdirp from 'mkdirp';
+import chokidar from 'chokidar';
 
 import * as babel from '@babel/core';
 import babelConfig from './babelConfig.js';
@@ -15,6 +16,9 @@ const schema = {
   },
 }
 
+// @note - maybe separate requested value from current value
+//       - upside: more cleans
+//       - downside: more network traffic (but maybe we really don't care...)
 const scriptSchema = {
   name: {
     type: 'string',
@@ -23,6 +27,12 @@ const scriptSchema = {
   value: {
     type: 'string',
     default: '',
+  },
+  requestValue: {
+    type: 'string',
+    default: null,
+    nullable: true,
+    event: true,
   },
   args: {
     type: 'any',
@@ -62,16 +72,18 @@ function getBody(func) {
   return values[1];
 }
 
+// we put a named function as default because anonymous functions
+// seems to be forbidden in globals scope (which kind of make sens)
+const defaultScriptValue = `function script() {}`;
 
-const serviceFactory = function(Service) {
+const pluginFactory = function(AbstractPlugin) {
 
-  return class ServiceScripting extends Service {
+  return class PluginScripting extends AbstractPlugin {
     constructor(server, name, options) {
       super(server, name);
 
       const defaults = {
         directory: path.join(process.cwd(), '.db', 'scripts'),
-        defaultScriptValue: `function defaultName() {}`,
       };
 
       this.scriptStates = new Map();
@@ -87,7 +99,36 @@ const serviceFactory = function(Service) {
     async start() {
       this.state = await this.server.stateManager.create(`s:${this.name}`);
       // init with existing files
-      await this.loadFromDirectory();
+      // await this._loadFromDirectory();
+
+      const watcher = chokidar.watch(this.options.directory, {
+        ignored: /(^|[\/\\])\../, // ignore dotfiles
+        persistent: true,
+      });
+
+      watcher.on('add', pathname => {
+        const scriptName = path.basename(pathname, '.js');
+        const code = fs.readFileSync(pathname).toString().trim() || null;
+
+        this.create(scriptName, code);
+      });
+
+      watcher.on('change', pathname => {
+        const scriptName = path.basename(pathname, '.js');
+        const value = fs.readFileSync(pathname).toString();
+        const scriptState = this.scriptStates.get(scriptName);
+
+        if (scriptState.get('value') !== value) {
+          scriptState.set({ requestValue: value });
+        } else {
+          // console.log('abort update');
+        }
+      });
+
+      watcher.on('unlink', pathname => {
+        const scriptName = path.basename(pathname, '.js');
+        this.delete(scriptName);
+      });
 
       this.started();
       this.ready();
@@ -98,12 +139,12 @@ const serviceFactory = function(Service) {
 
       client.socket.addListener(`s:${this.name}:create`, async (name, value) => {
         await this.create(name, value);
-        client.socket.send(`s:${this.name}:create-ack-${name}`);
+        client.socket.send(`s:${this.name}:create-ack:${name}`);
       });
 
       client.socket.addListener(`s:${this.name}:delete`, async (name) => {
         await this.delete(name);
-        client.socket.send(`s:${this.name}:delete-ack-${name}`);
+        client.socket.send(`s:${this.name}:delete-ack:${name}`);
       });
     }
 
@@ -111,58 +152,61 @@ const serviceFactory = function(Service) {
       super.disconnect(client);
     }
 
-    async loadFromDirectory(dirname) {
-      const directory = this.options.directory;
-
-      fs.readdir(directory, (err, files) => {
-        if (err) {
-          console.error('service-scripting: loadFromDirectory() error');
-          console.error(err);
-          return;
-        }
-
-        files.forEach(file => {
-          const scriptName = path.basename(file, '.js');
-          const pathname = path.join(directory, file);
-          const code = fs.readFileSync(pathname);
-
-          this.create(scriptName, code.toString());
-        });
-      });
+    getList() {
+      return this.state.get('list');
     }
 
-    // we put a named function as default because anonymous functions
-    // seems to be forbidden in globals scope (which kind of make sens)
-    //
-    // @todo - clean / slugify script name (problem of dispatching cleaned name)
-    //
+    subscribe(callback) {
+      return this.state.subscribe(callback);
+    }
+
+    // we don't need async here, just mimic StateManager API
+    async attach(name) {
+      if (this.scriptStates.has(name)) {
+        const scriptState = this.scriptStates.get(name);
+        return new Script(scriptState);
+      } else {
+        throw new Error(`[service-scripting] undefined script "${name}"`);
+      }
+    }
+
     async create(name, value = null) {
       if (!this.scriptStates.has(name)) {
         // register same schema with new name
-        this.server.stateManager.registerSchema(`s:${this.name}:script:${name}`, scriptSchema);
-        const scriptState = await this.server.stateManager.create(`s:${this.name}:script:${name}`, { name });
+        const scriptSchemaName = `s:${this.name}:script:${name}`;
+
+        this.server.stateManager.registerSchema(scriptSchemaName, scriptSchema);
+        const scriptState = await this.server.stateManager.create(scriptSchemaName, { name });
 
         scriptState.subscribe(updates => {
-          // console.log('in service', updates);
           for (let key in updates) {
-            if (key === 'value') {
-              const code = updates['value'];
-              let exception = false;
+            if (key === 'requestValue') {
+              const code = updates.requestValue;
 
               try {
                 const args = getArgs(code);
                 const body = getBody(code);
-                // babel handles parseing errors
+                // babel handles parsing errors
                 const transformed = babel.transformSync(body, babelConfig);
 
-                scriptState.set({ args, body: transformed.code, err: null });
+                scriptState.set({
+                  value: code,
+                  args,
+                  body: transformed.code,
+                  err: null,
+                });
+
                 // write to file
                 const filename = path.join(this.options.directory, `${name}.js`);
-                fs.writeFileSync(filename, code);
+                const content = fs.readFileSync(filename).toString();
+
+                // prevent write if the update has been done on the file itself
+                if (content !== code) {
+                  fs.writeFileSync(filename, code);
+                }
               } catch(err) {
                 scriptState.set({ err: err });
-                console.log(err);
-                exception = true;
+                // console.log(err);
               }
             }
           }
@@ -171,38 +215,20 @@ const serviceFactory = function(Service) {
         this.scriptStates.set(name, scriptState);
 
         // update script list
-        const list = Array.from(this.scriptStates.keys());
+        const list = Array.from(this.scriptStates.keys()).sort();
         this.state.set({ list });
       }
 
       const scriptState = this.scriptStates.get(name);
 
       if (value === null) {
-        value = this.options.defaultScriptValue;
+        value = defaultScriptValue;
         const functionName = value.match(/function(.*?)\(/)[1].trim();
         // replace is non greedy by default
         value = value.replace(functionName, camelCase(name));
       }
 
-      await scriptState.set({ value });
-    }
-
-    // we don't need async here, just mimic StateManager API
-    async attach(name) {
-      if (this.scriptStates.has(name)) {
-        // here we would like to create a new state as we want to be able to
-        // attach and detach server side without deleting the script completely
-        // but this is one of the (many) limitations we have with the stateManager
-        // at this point...
-        // doing that would imply that the transport in the stateManager would
-        // be able to define which strategy to choose (socket or EventListener)
-        // to maintain states consistant.
-
-        const scriptState = this.scriptStates.get(name);
-        return new Script(scriptState);
-      } else {
-        throw new Error(`[service-scripting] undefined script "${name}"`);
-      }
+      await scriptState.set({ requestValue: value });
     }
 
     async delete(name) {
@@ -211,12 +237,14 @@ const serviceFactory = function(Service) {
         this.scriptStates.delete(name);
 
         // update script list
-        const list = Array.from(this.scriptStates.keys());
+        const list = Array.from(this.scriptStates.keys()).sort();
         this.state.set({ list });
 
         // delete file
         const filename = path.join(this.options.directory, `${name}.js`);
-        fs.unlinkSync(filename);
+        if (fs.existsSync(filename)) {
+          fs.unlinkSync(filename);
+        }
 
         // delete script (notify everyone...)
         scriptState.detach();
@@ -225,11 +253,7 @@ const serviceFactory = function(Service) {
 
       return Promise.resolve();
     }
-
   }
 }
 
-// not mandatory
-serviceFactory.defaultName = 'service-name';
-
-export default serviceFactory;
+export default pluginFactory;
