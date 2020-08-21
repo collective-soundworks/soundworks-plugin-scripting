@@ -9,22 +9,22 @@
 - [Installation](#installation)
 - [Example](#example)
 - [Usage](#usage)
-  * [Server](#server)
+  * [Server installation](#server-installation)
     + [Registering the plugin](#registering-the-plugin)
     + [Requiring the plugin](#requiring-the-plugin)
-  * [Client](#client)
+  * [Client installation](#client-installation)
     + [Registering the plugin](#registering-the-plugin-1)
     + [Requiring the plugin](#requiring-the-plugin-1)
-- [Scripts Management](#scripts-management)
-  * [Creating a script](#creating-a-script)
-  * [Deleting a script](#deleting-a-script)
-  * [Attaching to a script](#attaching-to-a-script)
-  * [Observing and Getting list of available scripts](#observing-and-getting-list-of-available-scripts)
-- [Script Consumption](#script-consumption)
-  * [Executing a script](#executing-a-script)
-  * [Getting and updating the value of a script](#getting-and-updating-the-value-of-a-script)
-  * [Subscribing to script updates](#subscribing-to-script-updates)
-  * [Detach from a script](#detach-from-a-script)
+  * [Scripts Management](#scripts-management)
+    + [Creating a script](#creating-a-script)
+    + [Deleting a script](#deleting-a-script)
+    + [Attaching to a script](#attaching-to-a-script)
+    + [Observing and Getting list of available scripts](#observing-and-getting-list-of-available-scripts)
+  * [Script Consumption](#script-consumption)
+    + [Executing a script](#executing-a-script)
+    + [Getting and updating the value of a script](#getting-and-updating-the-value-of-a-script)
+    + [Subscribing to script updates](#subscribing-to-script-updates)
+    + [Detaching from a script](#detaching-from-a-script)
 - [Notes](#notes)
   * [File edition](#file-edition)
   * [Advanced usage](#advanced-usage)
@@ -46,7 +46,7 @@ A working example can be found in the [https://github.com/collective-soundworks/
 
 ## Usage
 
-### Server
+### Server installation
 
 #### Registering the plugin
 
@@ -77,7 +77,7 @@ class MyExperience extends AbstractExperience {
 }
 ```
 
-### Client
+### Client installation
 
 #### Registering the plugin
 
@@ -105,11 +105,11 @@ class MyExperience extends Experience {
 }
 ```
 
-## Scripts Management
+### Scripts Management
 
 All the plugin scripting API presented below is similar server-side and client-side.
 
-### Creating a script
+#### Creating a script
 
 ```js
 const scriptName = 'my-script';
@@ -124,19 +124,19 @@ function(audioContext) {
 await this.scripting.create(scriptName, defaultValue);
 ```
 
-### Deleting a script
+#### Deleting a script
 
 ```js
 await this.scripting.delete(scriptName);
 ```
 
-### Attaching to a script
+#### Attaching to a script
 
 ```js
 const script = await this.scripting.attach(scriptName);
 ```
 
-### Observing and Getting list of available scripts
+#### Observing and Getting list of available scripts
 
 ```js
 // observe creation and deletion of scripts on the network
@@ -149,11 +149,11 @@ this.scripting.observe(() => {
 const list = this.scripting.getList();
 ```
 
-## Script Consumption
+### Script Consumption
 
 The scripts are internally transpiled using babel to enable usage of modern JS features in old browsers (we currently aim to support iOS >= 9.3).
 
-### Executing a script
+#### Executing a script
 
 ```js
 const script = await this.scripting.attach('some-script');
@@ -162,7 +162,7 @@ const script = await this.scripting.attach('some-script');
 script.execute(...args);
 ```
 
-### Getting and updating the value of a script
+#### Getting and updating the value of a script
 
 ```js
 const script = await this.scripting.attach('some-script');
@@ -174,7 +174,7 @@ const code = script.getValue();
 script.setValue(code);
 ```
 
-### Subscribing to script updates
+#### Subscribing to script updates
 
 ```js
 // re-execute the script when its value has been updated
@@ -186,7 +186,7 @@ script.subscribe(() => {
 script.setValue(code);
 ```
 
-### Detach from a script
+#### Detaching from a script
 
 ```js
 // the given callback is also called when the script is deleted
