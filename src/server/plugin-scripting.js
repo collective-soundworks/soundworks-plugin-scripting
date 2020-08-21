@@ -156,7 +156,7 @@ const pluginFactory = function(AbstractPlugin) {
       return this.state.get('list');
     }
 
-    subscribe(callback) {
+    observe(callback) {
       return this.state.subscribe(callback);
     }
 
