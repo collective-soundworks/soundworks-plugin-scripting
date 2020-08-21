@@ -1,4 +1,4 @@
-# `@soundworks/plugin-[name]`
+# `@soundworks/plugin-scripting`
 
 > [`soundworks`](https://github.com/collective-soundworks/soundworks) plugin for runtime scripting. The plugin allow to define entry point in the application that enable the end user to modify the behavior of the distributed application at runtime, following an end-user programming strategy.
 
@@ -7,9 +7,9 @@
 <!-- toc -->
 
 - [Installation](#installation)
-  * [Server](#server)
 - [Example](#example)
 - [Usage](#usage)
+  * [Server](#server)
     + [Registering the plugin](#registering-the-plugin)
     + [Requiring the plugin](#requiring-the-plugin)
   * [Client](#client)
@@ -40,13 +40,13 @@
 npm install @soundworks/plugin-scripting --save
 ```
 
-### Server
-
 ## Example
 
 A working example can be found in the [https://github.com/collective-soundworks/soundworks-examples](https://github.com/collective-soundworks/soundworks-examples) repository.
 
 ## Usage
+
+### Server
 
 #### Registering the plugin
 
