@@ -9,7 +9,7 @@ import chokidar from 'chokidar';
 import * as babel from '@babel/core';
 import babelConfig from './babelConfig.js';
 import { parse } from './parse.js';
-import { formatError } from '../server/format-error.js';
+import { formatError } from '../common/parse-error.js';
 
 const schema = {
   list: {
