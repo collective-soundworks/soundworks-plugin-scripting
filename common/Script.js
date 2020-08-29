@@ -47,8 +47,8 @@ class Script {
   subscribe(func) {
     const unsubscribe = this._scriptState.subscribe(updates => {
       // value is set with arg and body
-      if ('value' in updates || 'err' in updates) {
-        func();
+      if ('value' in updates || 'error' in updates) {
+        func(updates);
       }
     });
 

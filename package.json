@@ -25,6 +25,7 @@
     "@babel/core": "^7.11.1",
     "@babel/plugin-transform-arrow-functions": "^7.10.4",
     "@babel/preset-env": "^7.11.0",
+    "acorn": "^8.0.1",
     "lodash.camelcase": "^4.3.0",
     "mkdirp": "^1.0.4",
     "slugify": "^1.4.5"

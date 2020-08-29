@@ -8,6 +8,8 @@ import chokidar from 'chokidar';
 
 import * as babel from '@babel/core';
 import babelConfig from './babelConfig.js';
+import { parse } from './parse.js';
+import { formatError } from '../server/format-error.js';
 
 const schema = {
   list: {
@@ -42,35 +44,13 @@ const scriptSchema = {
     type: 'string',
     default: '',
   },
-  err: {
+  error: {
     type: 'any',
     default: null,
     nullable: true,
   }
 };
 
- // cf. https://stackoverflow.com/questions/1007981/how-to-get-function-parameter-names-values-dynamically
-const STRIP_COMMENTS = /(\/\/.*$)|(\/\*[\s\S]*?\*\/)|(\s*=[^,\)]*(('(?:\\'|[^'\r\n])*')|("(?:\\"|[^"\r\n])*"))|(\s*=[^,\)]*))/mg;
-const ARGUMENT_NAMES = /([^\s,]+)/g;
-
-function getArgs(func) {
-  const fnStr = func.toString().replace(STRIP_COMMENTS, '');
-  let result = fnStr.slice(fnStr.indexOf('(')+1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
-
-  if (result === null) {
-    result = [];
-  }
-
-  return result;
-}
-
-// cf. https://github.com/nulltask/function-body-regex
-function getBody(func) {
-  func = func.trim();
-  const regExp = /.*function\s*\w*\s*\([\w\s,]*\)\s*{([\w\W]*?)}$/;
-  const values = regExp.exec(func);
-  return values[1];
-}
 
 // we put a named function as default because anonymous functions
 // seems to be forbidden in globals scope (which kind of make sens)
@@ -184,8 +164,11 @@ const pluginFactory = function(AbstractPlugin) {
               const code = updates.requestValue;
 
               try {
-                const args = getArgs(code);
-                const body = getBody(code);
+                // parse source code using acorn, should be robust enough
+                // Syntax errors seems to be properly catched too
+                // @note: maybe this could be done implementing a babel plugin to
+                // avoid parsing twice... but maybe we don't really care...
+                const { args, body } = parse(code);
                 // babel handles parsing errors
                 const transformed = babel.transformSync(body, babelConfig);
 
@@ -193,7 +176,7 @@ const pluginFactory = function(AbstractPlugin) {
                   value: code,
                   args,
                   body: transformed.code,
-                  err: null,
+                  error: null,
                 });
 
                 // write to file
@@ -205,8 +188,20 @@ const pluginFactory = function(AbstractPlugin) {
                   fs.writeFileSync(filename, code);
                 }
               } catch(err) {
-                scriptState.set({ err: err });
-                // console.log(err);
+                console.log(`[${this.name}:${name}]`, `${err.name}: ${err.message}`);
+
+                const error = Object.assign({}, err);
+                error.name = err.name;
+                error.message = err.message;
+
+                if (err.loc) {
+                  const { line, column } = error.loc;
+                  const prettyError = formatError(code, line, column);
+                  error.code = prettyError;
+                  console.log(prettyError);
+                }
+
+                scriptState.set({ error });
               }
             }
           }
