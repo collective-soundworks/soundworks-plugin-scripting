@@ -5,10 +5,9 @@
   "authors": [
     "Benjamin Matuszewski"
   ],
-  "private": true,
   "license": "BSD-3-Clause",
   "scripts": {
-    "clean": "rm -Rf client && rm -Rf server",
+    "clean": "rm -Rf client && rm -Rf server && rm -Rf common",
     "toc": "markdown-toc -i README.md",
     "prepublishOnly": "npm run build",
     "build": "npm run toc && npm run clean && babel src --out-dir .",
@@ -19,7 +18,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/collective-soundworks/soundworks-plugin-template"
+    "url": "https://github.com/collective-soundworks/soundworks-plugin-scripting"
   },
   "dependencies": {
     "@babel/core": "^7.11.1",
