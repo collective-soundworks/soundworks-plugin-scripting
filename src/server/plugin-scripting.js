@@ -52,10 +52,6 @@ const scriptSchema = {
 };
 
 
-// we put a named function as default because anonymous functions
-// seems to be forbidden in globals scope (which kind of make sens)
-const defaultScriptValue = `function script() {}`;
-
 const pluginFactory = function(AbstractPlugin) {
 
   return class PluginScripting extends AbstractPlugin {
@@ -64,6 +60,7 @@ const pluginFactory = function(AbstractPlugin) {
 
       const defaults = {
         directory: path.join(process.cwd(), '.db', 'scripts'),
+        defaultScriptValue: null,
       };
 
       this.scriptStates = new Map();
@@ -181,7 +178,12 @@ const pluginFactory = function(AbstractPlugin) {
 
                 // write to file
                 const filename = path.join(this.options.directory, `${name}.js`);
-                const content = fs.readFileSync(filename).toString();
+                let content = null;
+
+                // if the script has just been created, the file does not exists yet
+                if (fs.existsSync(filename)) {
+                  content = fs.readFileSync(filename).toString();
+                }
 
                 // prevent write if the update has been done on the file itself
                 if (content !== code) {
@@ -189,6 +191,7 @@ const pluginFactory = function(AbstractPlugin) {
                 }
               } catch(err) {
                 console.log(`[${this.name}:${name}]`, `${err.name}: ${err.message}`);
+                console.log(err);
 
                 const error = Object.assign({}, err);
                 error.name = err.name;
@@ -217,7 +220,7 @@ const pluginFactory = function(AbstractPlugin) {
       const scriptState = this.scriptStates.get(name);
 
       if (value === null) {
-        value = defaultScriptValue;
+        value = this.options.defaultScriptValue || `function script() {}`;
         const functionName = value.match(/function(.*?)\(/)[1].trim();
         // replace is non greedy by default
         value = value.replace(functionName, camelCase(name));
