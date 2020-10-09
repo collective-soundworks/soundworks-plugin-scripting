@@ -178,8 +178,12 @@ script.setValue(code);
 
 ```js
 // re-execute the script when its value has been updated
-script.subscribe(() => {
-  script.execute(...args);
+script.subscribe(updates => {
+  // execute the script only if no type errors found
+  // by default the error will be displayed in the console
+  if (!updates.error) {
+    script.execute(...args);
+  }
 });
 
 // later...
