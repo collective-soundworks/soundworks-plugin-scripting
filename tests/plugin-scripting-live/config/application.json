@@ -1,0 +1,10 @@
+{
+  name: 'plugin-scripting-live',
+  author: '',
+  clients: {
+    editor: {
+      target: 'browser',
+      default: true,
+    },
+  },
+}

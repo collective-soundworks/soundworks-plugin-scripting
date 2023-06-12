@@ -1,10 +1,9 @@
 import Script from '../common/Script';
 
-const pluginFactory = function(AbstractPlugin) {
-
-  return class PluginScripting extends AbstractPlugin {
-    constructor(client, name, options) {
-      super(client, name);
+const pluginFactory = function(Plugin) {
+  return class PluginScripting extends Plugin {
+    constructor(client, id, options) {
+      super(client, id);
 
       const defaults = {
         // default config options
@@ -14,7 +13,7 @@ const pluginFactory = function(AbstractPlugin) {
     }
 
     async start() {
-      this.state = await this.client.stateManager.attach(`s:${this.name}`);
+      this.state = await this.client.stateManager.attach(`s:plugin:${this.id}`);
 
       this.started();
       this.ready()
@@ -29,34 +28,34 @@ const pluginFactory = function(AbstractPlugin) {
     }
 
     async attach(name) {
-      const scriptSchemaName = `s:${this.name}:script:${name}`;
+      const scriptSchemaName = `s:plugin:${this.id}:script:${name}`;
       const scriptState = await this.client.stateManager.attach(scriptSchemaName);
       return new Script(scriptState);
     }
 
     async create(name, value = null) {
       return new Promise((resolve, reject) => {
-        const ackChannel = `s:${this.name}:create-ack:${name}`;
+        const ackChannel = `s:plugin:${this.id}:create-ack:${name}`;
 
         this.client.socket.addListener(ackChannel, () => {
           this.client.socket.removeAllListeners(ackChannel);
           resolve();
         });
 
-        this.client.socket.send(`s:${this.name}:create`, name, value);
+        this.client.socket.send(`s:plugin:${this.id}:create`, name, value);
       });
     }
 
     async delete(name) {
       return new Promise((resolve, reject) => {
-        const ackChannel = `s:${this.name}:delete-ack:${name}`;
+        const ackChannel = `s:${this.id}:delete-ack:${name}`;
 
         this.client.socket.addListener(ackChannel, () => {
           this.client.socket.removeAllListeners(ackChannel);
           resolve();
         });
 
-        this.client.socket.send(`s:${this.name}:delete`, name);
+        this.client.socket.send(`s:plugin:${this.id}:delete`, name);
       });
     }
   }

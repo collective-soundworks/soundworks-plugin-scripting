@@ -1,15 +1,16 @@
-import Script from '../common/Script';
-import fs from 'fs';
-import path from 'path';
-import camelCase from 'lodash.camelcase';
-import slugify from 'slugify';
-import mkdirp from 'mkdirp';
-import chokidar from 'chokidar';
+import fs from 'node:fs';
+import path from 'node:path';
 
 import * as babel from '@babel/core';
+import camelCase from 'lodash.camelcase';
+import chokidar from 'chokidar';
+import mkdirp from 'mkdirp';
+import slugify from 'slugify';
+
 import babelConfig from './babelConfig.js';
 import { parse } from './parse.js';
 import { formatError } from '../common/parse-error.js';
+import Script from '../common/Script.js';
 
 const schema = {
   list: {
@@ -52,31 +53,37 @@ const scriptSchema = {
 };
 
 
-const pluginFactory = function(AbstractPlugin) {
+const pluginFactory = function(Plugin) {
 
-  return class PluginScripting extends AbstractPlugin {
-    constructor(server, name, options) {
-      super(server, name);
+  return class PluginScripting extends Plugin {
+    constructor(server, id, options) {
+      super(server, id);
 
       const defaults = {
+        // @todo - rename to `dirname`
         directory: path.join(process.cwd(), '.db', 'scripts'),
+        // @todo - allow several script templates
         defaultScriptValue: null,
       };
 
+      // @todo - make private
       this.scriptStates = new Map();
 
-      this.options = this.configure(defaults, options);
+      this.options = Object.assign(defaults, options);
       // create folder
       mkdirp.sync(this.options.directory);
 
       this.states = new Map();
-      this.server.stateManager.registerSchema(`s:${this.name}`, schema);
+      this.server.stateManager.registerSchema(`s:plugin:${this.id}`, schema);
     }
 
     async start() {
-      this.state = await this.server.stateManager.create(`s:${this.name}`);
+      this.state = await this.server.stateManager.create(`s:plugin:${this.id}`);
       // init with existing files
-      // await this._loadFromDirectory();
+
+      // replace with plugin-filesystem and expose it so we can
+      // `scripting.filesystem.switch('/other/project')`
+
 
       const watcher = chokidar.watch(this.options.directory, {
         ignored: /(^|[\/\\])\../, // ignore dotfiles
@@ -107,21 +114,21 @@ const pluginFactory = function(AbstractPlugin) {
         this.delete(scriptName);
       });
 
-      this.started();
-      this.ready();
+      return Promise.resolve();
     }
 
     connect(client) {
       super.connect(client);
 
-      client.socket.addListener(`s:${this.name}:create`, async (name, value) => {
+      // replace with state events and hooks or maybe overkill
+      client.socket.addListener(`s:plugin:${this.id}:create`, async (name, value) => {
         await this.create(name, value);
-        client.socket.send(`s:${this.name}:create-ack:${name}`);
+        client.socket.send(`s:plugin:${this.id}:create-ack:${name}`);
       });
 
-      client.socket.addListener(`s:${this.name}:delete`, async (name) => {
+      client.socket.addListener(`s:plugin:${this.id}:delete`, async (name) => {
         await this.delete(name);
-        client.socket.send(`s:${this.name}:delete-ack:${name}`);
+        client.socket.send(`s:plugin:${this.id}:delete-ack:${name}`);
       });
     }
 
@@ -133,8 +140,8 @@ const pluginFactory = function(AbstractPlugin) {
       return this.state.get('list');
     }
 
-    observe(callback) {
-      return this.state.subscribe(callback);
+    onUpdate(callback) {
+      return this.state.onUpdate(callback);
     }
 
     // we don't need async here, just mimic StateManager API
@@ -150,12 +157,12 @@ const pluginFactory = function(AbstractPlugin) {
     async create(name, value = null) {
       if (!this.scriptStates.has(name)) {
         // register same schema with new name
-        const scriptSchemaName = `s:${this.name}:script:${name}`;
+        const scriptSchemaName = `s:plugin:${this.id}:script:${name}`;
 
         this.server.stateManager.registerSchema(scriptSchemaName, scriptSchema);
         const scriptState = await this.server.stateManager.create(scriptSchemaName, { name });
 
-        scriptState.subscribe(updates => {
+        scriptState.onUpdate(updates => {
           for (let key in updates) {
             if (key === 'requestValue') {
               const code = updates.requestValue;
@@ -190,7 +197,7 @@ const pluginFactory = function(AbstractPlugin) {
                   fs.writeFileSync(filename, code);
                 }
               } catch(err) {
-                console.log(`[${this.name}:${name}]`, `${err.name}: ${err.message}`);
+                console.log(`[${this.id}:${name}]`, `${err.name}: ${err.message}`);
                 console.log(err);
 
                 const error = Object.assign({}, err);
@@ -246,7 +253,7 @@ const pluginFactory = function(AbstractPlugin) {
 
         // delete script (notify everyone...)
         scriptState.detach();
-        this.server.stateManager.deleteSchema(`s:${this.name}:script:${name}`);
+        this.server.stateManager.deleteSchema(`s:plugin:${this.id}:script:${name}`);
       }
 
       return Promise.resolve();

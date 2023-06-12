@@ -1,4 +1,9 @@
-src
-
-.babelrc
 .editorconfig
+.eslintrc
+
+tests
+
+# junk files
+.DS_Store
+Thumbs.db
+

@@ -1,6 +1,6 @@
 # `@soundworks/plugin-scripting`
 
-> [`soundworks`](https://github.com/collective-soundworks/soundworks) plugin for runtime scripting. The plugin allows to define entry point in the application that enable the end user to modify the behavior of the distributed application at runtime, following an end-user programming strategy.
+[`soundworks`](https://github.com/collective-soundworks/soundworks) plugin for runtime scripting. The plugin allows to define entry point in the application that enable the end user to modify the behavior of the distributed application at runtime, following an end-user programming strategy.
 
 ## Table of Contents
 
@@ -265,4 +265,4 @@ The code has been initiated in the framework of the WAVE and CoSiMa research pro
 
 ## License
 
-BSD-3-Clause
+[BSD-3-Clause](./LICENSE)
