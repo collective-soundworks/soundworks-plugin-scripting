@@ -1,5 +1,5 @@
 // support static dependencies
-import { add } from './utils.js';
+import { add } from './utils/math.js';
 // support installed dependencies
 import { getTime } from '@ircam/sc-gettime';
 // support context defined at runtime through global object

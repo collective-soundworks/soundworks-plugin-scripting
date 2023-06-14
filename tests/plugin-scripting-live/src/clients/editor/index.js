@@ -27,6 +27,10 @@ async function main($container) {
 
   const data = await client.stateManager.attach('data');
 
+  globalThis.getContext = () => {
+    return { data };
+  };
+
   const $layout = createLayout(client, $container);
   const { width, height } = $container.getBoundingClientRect();
 
@@ -34,28 +38,40 @@ async function main($container) {
     <sc-editor
       width="${width}"
       height="${height}"
-      @change="${e => data.set({ script: e.detail.value })}"
+      @change="${e => data.set({ source: e.detail.value })}"
     ></sc-editor>
   `);
 
 
   data.onUpdate(async updates => {
-    if ('transpiled' in updates) {
+    if ('transpiled' in updates && updates['transpiled'] !== null) {
       let transpiled = updates.transpiled;
       console.log(transpiled);
+
+      // @todo - revoke old url
 
       const file = new File([transpiled], data.get('filename'), { type: 'text/javascript' });
       const url = URL.createObjectURL(file);
       // transpiled = `data:text/javascript;name=my-script.js;base64,${transpiled}`;
-
+      // not a huge problem as this is hidden in the lib
       const module = await import(/* webpackIgnore: true */url);
 
-      console.log(module.foo);
-      module.test();
+      console.log('foo:', module.foo);
+      const result = module.test();
+      console.log(result);
+      module.logContext();
+      // module.launchTimer();
     }
 
-    if ('script' in updates) {
-      $layout.shadowRoot.querySelector('sc-editor').value = updates.script;
+    if ('formattedError' in updates && updates['formattedError'] !== null) {
+      console.log('> build error');
+      console.error(updates['formattedError']);
+    }
+
+    if ('source' in updates) {
+      requestAnimationFrame(() => {
+        $layout.shadowRoot.querySelector('sc-editor').value = updates.source;
+      });
     }
   }, true);
 }

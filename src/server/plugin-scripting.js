@@ -1,262 +1,294 @@
-import fs from 'node:fs';
+import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { EventEmitter } from 'node:events';
 
-import * as babel from '@babel/core';
-import camelCase from 'lodash.camelcase';
-import chokidar from 'chokidar';
-import mkdirp from 'mkdirp';
-import slugify from 'slugify';
+import { isString } from '@ircam/sc-utils';
+import pluginFilesystem from '@soundworks/plugin-filesystem/server.js';
+import { build } from 'esbuild';
 
-import babelConfig from './babelConfig.js';
-import { parse } from './parse.js';
-import { formatError } from '../common/parse-error.js';
+import { formatErrors } from './utils.js';
 import Script from '../common/Script.js';
 
-const schema = {
-  list: {
-    type: 'any',
-    default: [],
-  },
+function implement() {
+  throw new Error('not implemented');
 }
 
-// @note - maybe separate requested value from current value
-//       - upside: more cleans
-//       - downside: more network traffic (but maybe we really don't care...)
-const scriptSchema = {
-  name: {
-    type: 'string',
-    default: '',
-  },
-  value: {
-    type: 'string',
-    default: '',
-  },
-  requestValue: {
-    type: 'string',
-    default: null,
-    nullable: true,
-    event: true,
-  },
-  args: {
-    type: 'any',
-    default: [],
-  },
-  body: {
-    type: 'string',
-    default: '',
-  },
-  error: {
-    type: 'any',
-    default: null,
-    nullable: true,
+function sanitizeScriptName(name) {
+  if (!isString(name)) {
+    throw new Error('[soundworks:PluginScripting] Invalid script name, should be string');
   }
-};
 
+  if (!name.endsWith('.js')) {
+    return `${name}.js`;
+  }
+
+  return name;
+}
 
 const pluginFactory = function(Plugin) {
-
   return class PluginScripting extends Plugin {
     constructor(server, id, options) {
       super(server, id);
 
       const defaults = {
-        // @todo - rename to `dirname`
-        directory: path.join(process.cwd(), '.db', 'scripts'),
+        dirname: path.join(process.cwd(), '.db', 'scripts'),
         // @todo - allow several script templates
-        defaultScriptValue: null,
+        defaultScriptSource: null,
       };
 
-      // @todo - make private
-      this.scriptStates = new Map();
+      this.options = Object.assign({}, defaults, options);
 
-      this.options = Object.assign(defaults, options);
-      // create folder
-      mkdirp.sync(this.options.directory);
+      // use filesystem plugin to watch dirname
+      this.server.pluginManager.register(`sw:plugin:${this.id}:filesystem`, pluginFilesystem, {
+        dirname: this.options.dirname,
+      });
 
-      this.states = new Map();
-      this.server.stateManager.registerSchema(`s:plugin:${this.id}`, schema);
+      // states
+      const internalsSchema = {
+        nameList: {
+          type: 'any',
+          default: [],
+        },
+        nameIdMap: {
+          type: 'any',
+          default: [],
+        },
+      };
+
+      const scriptSchema = {
+        filename: {
+          type: 'string',
+          default: null,
+          nullable: true,
+        },
+        source: {
+          type: 'string',
+          default: null,
+          nullable: true,
+        },
+        transpiled: {
+          type: 'string',
+          default: null,
+          nullable: true,
+        },
+        error: {
+          type: 'string',
+          default: null,
+          nullable: true,
+        },
+      };
+
+      this.server.stateManager.registerSchema(`sw:plugin:${this.id}:internals`, internalsSchema);
+      this.server.stateManager.registerSchema(`sw:plugin:${this.id}:script`, scriptSchema);
+
+      // private
+      this._scriptStatesByName = new Map();
+      this._internalsState = null;
+      this._filesystem = null;
+      this._emitter = new EventEmitter();
+    }
+
+    async _updateInternals() {
+      let nameList = [];
+      let nameIdMap = [];
+
+      for (let [name, state] of this._scriptStatesByName.entries()) {
+        nameList.push(name);
+        nameIdMap.push({ name, id: state.id });
+      }
+
+      await this._internalsState.set({ nameList, nameIdMap });
+    }
+
+    async _createScripts(node) {
+      if (node.type === 'file') {
+        const name = sanitizeScriptName(node.relPath);
+
+        if (!this._scriptStatesByName.has(name)) {
+          // create state associated to the file
+          const filename = node.path;
+          const source = await fs.readFile(filename);
+          // filename must be set here so that the hook can rely on the value
+          const state = await this.server.stateManager.create(`sw:plugin:${this.id}:script`, {
+            filename
+          });
+          // we use set here trigger hook from filesystem
+          await state.set({ source: source.toString() }, { fs: true });
+
+          // store infos
+          this._scriptStatesByName.set(name, state);
+        }
+      } else if (node.type === 'directory') {
+        for (let child of node.children) {
+          await this._createScripts(child);
+        }
+      }
     }
 
     async start() {
-      this.state = await this.server.stateManager.create(`s:plugin:${this.id}`);
-      // init with existing files
+      this._internalsState = await this.server.stateManager.create(`sw:plugin:${this.id}:internals`);
 
-      // replace with plugin-filesystem and expose it so we can
-      // `scripting.filesystem.switch('/other/project')`
+      this.server.stateManager.registerUpdateHook(`sw:plugin:${this.id}:script`, async (updates, currentValues, context) => {
+        if (context.fs && 'source' in updates) {
+          // transpile source
+          try {
+            const buildResult = await build({
+              entryPoints: [currentValues.filename],
+              format: 'esm',
+              platform: 'browser',
+              bundle: true,
+              write: false,
+              outfile: 'ouput',
+              // sourcemap: true, // sourcemaps need to be parsed separately
+            });
 
-
-      const watcher = chokidar.watch(this.options.directory, {
-        ignored: /(^|[\/\\])\../, // ignore dotfiles
-        persistent: true,
-      });
-
-      watcher.on('add', pathname => {
-        const scriptName = path.basename(pathname, '.js');
-        const code = fs.readFileSync(pathname).toString().trim() || null;
-
-        this.create(scriptName, code);
-      });
-
-      watcher.on('change', pathname => {
-        const scriptName = path.basename(pathname, '.js');
-        const value = fs.readFileSync(pathname).toString();
-        const scriptState = this.scriptStates.get(scriptName);
-
-        if (scriptState.get('value') !== value) {
-          scriptState.set({ requestValue: value });
+            return {
+              transpiled: buildResult.outputFiles[0].text,
+              error: null,
+              ...updates,
+            };
+          } catch (err) {
+            return {
+              error: formatErrors(err.errors),
+              transpiled: null,
+              ...updates,
+            };
+          }
         } else {
-          // console.log('abort update');
+          throw new Error(`[soundworks/plugin-scripting] updates should always go through filesystem`);
         }
       });
 
-      watcher.on('unlink', pathname => {
-        const scriptName = path.basename(pathname, '.js');
-        this.delete(scriptName);
+      // use the pirvate `unsafeGet` to bypass the server init check
+      this._filesystem = await this.server.pluginManager.unsafeGet(`sw:plugin:${this.id}:filesystem`);
+
+      this._filesystem.onUpdate(async ({ tree, events }) => {
+        for (let { type, node } of events) {
+          const name = node.relPath;
+
+          switch (type) {
+            case 'create': {
+              await this._createScripts(node);
+              await this._updateInternals(name);
+              this._emitter.emit(name);
+              break;
+            }
+            case 'update': {
+              if (this._scriptStatesByName.has(name)) {
+                const state = this._scriptStatesByName.get(name);
+                const source = await fs.readFile(node.path);
+                // trigger hook from filesystem
+                await state.set({ source: source.toString() }, { fs: true });
+                await this._updateInternals(name);
+                this._emitter.emit(name);
+              }
+              break;
+            }
+            case 'delete': {
+              if (this._scriptStatesByName.has(name)) {
+                const state = this._scriptStatesByName.get(name);
+                this._scriptStatesByName.delete(name);
+
+                await state.delete();
+                await this._updateInternals(name);
+                this._emitter.emit(name);
+              }
+              break;
+            }
+          }
+        }
       });
 
-      return Promise.resolve();
+      // init with current tree
+      await this._createScripts(this._filesystem.getTree());
+      await this._updateInternals();
     }
 
-    connect(client) {
-      super.connect(client);
-
-      // replace with state events and hooks or maybe overkill
-      client.socket.addListener(`s:plugin:${this.id}:create`, async (name, value) => {
-        await this.create(name, value);
-        client.socket.send(`s:plugin:${this.id}:create-ack:${name}`);
-      });
-
-      client.socket.addListener(`s:plugin:${this.id}:delete`, async (name) => {
-        await this.delete(name);
-        client.socket.send(`s:plugin:${this.id}:delete-ack:${name}`);
-      });
-    }
-
-    disconnect(client) {
-      super.disconnect(client);
+    setContext(obj) {
+      globalsThis.getContext = function() {
+        return obj;
+      }
     }
 
     getList() {
-      return this.state.get('list');
+      return this._internalsState.get('nameList');
     }
 
-    onUpdate(callback) {
-      return this.state.onUpdate(callback);
+    onUpdate(callback, executeListener = false) {
+      return this._internalsState.onUpdate(callback, executeListener);
     }
 
-    // we don't need async here, just mimic StateManager API
-    async attach(name) {
-      if (this.scriptStates.has(name)) {
-        const scriptState = this.scriptStates.get(name);
-        return new Script(scriptState);
-      } else {
-        throw new Error(`[service-scripting] undefined script "${name}"`);
-      }
+    async switch() {
+      implement();
+
+      // delete all script states
+      // reinit internals
+      // switch filesystem plugin
     }
 
     async create(name, value = null) {
-      if (!this.scriptStates.has(name)) {
-        // register same schema with new name
-        const scriptSchemaName = `s:plugin:${this.id}:script:${name}`;
-
-        this.server.stateManager.registerSchema(scriptSchemaName, scriptSchema);
-        const scriptState = await this.server.stateManager.create(scriptSchemaName, { name });
-
-        scriptState.onUpdate(updates => {
-          for (let key in updates) {
-            if (key === 'requestValue') {
-              const code = updates.requestValue;
-
-              try {
-                // parse source code using acorn, should be robust enough
-                // Syntax errors seems to be properly catched too
-                // @note: maybe this could be done implementing a babel plugin to
-                // avoid parsing twice... but maybe we don't really care...
-                const { args, body } = parse(code);
-                // babel handles parsing errors
-                const transformed = babel.transformSync(body, babelConfig);
-
-                scriptState.set({
-                  value: code,
-                  args,
-                  body: transformed.code,
-                  error: null,
-                });
-
-                // write to file
-                const filename = path.join(this.options.directory, `${name}.js`);
-                let content = null;
-
-                // if the script has just been created, the file does not exists yet
-                if (fs.existsSync(filename)) {
-                  content = fs.readFileSync(filename).toString();
-                }
-
-                // prevent write if the update has been done on the file itself
-                if (content !== code) {
-                  fs.writeFileSync(filename, code);
-                }
-              } catch(err) {
-                console.log(`[${this.id}:${name}]`, `${err.name}: ${err.message}`);
-                console.log(err);
-
-                const error = Object.assign({}, err);
-                error.name = err.name;
-                error.message = err.message;
-
-                if (err.loc) {
-                  const { line, column } = error.loc;
-                  const prettyError = formatError(code, line, column);
-                  error.code = prettyError;
-                  console.log(prettyError);
-                }
-
-                scriptState.set({ error });
-              }
-            }
-          }
-        });
-
-        this.scriptStates.set(name, scriptState);
-
-        // update script list
-        const list = Array.from(this.scriptStates.keys()).sort();
-        this.state.set({ list });
-      }
-
-      const scriptState = this.scriptStates.get(name);
+      name = sanitizeScriptName(name);
 
       if (value === null) {
-        value = this.options.defaultScriptValue || `function script() {}`;
-        const functionName = value.match(/function(.*?)\(/)[1].trim();
-        // replace is non greedy by default
-        value = value.replace(functionName, camelCase(name));
+        if (this.options.defaultScriptSource !== null) {
+          value = this.options.defaultScriptSource;
+        } else {
+          value = '';
+        }
       }
 
-      await scriptState.set({ requestValue: value });
+      return new Promise(async (resolve, reject) => {
+        this._emitter.once(name, resolve);
+        await this._filesystem.writeFile(name, value);
+      });
     }
 
-    async delete(name) {
-      if (this.scriptStates.has(name)) {
-        const scriptState = this.scriptStates.get(name);
-        this.scriptStates.delete(name);
+    /**
+     * Resolve when eveything is updated, i.e. script state, nameLists, etc.
+     */
+    async update(name, value) {
+      name = sanitizeScriptName(name);
 
-        // update script list
-        const list = Array.from(this.scriptStates.keys()).sort();
-        this.state.set({ list });
-
-        // delete file
-        const filename = path.join(this.options.directory, `${name}.js`);
-        if (fs.existsSync(filename)) {
-          fs.unlinkSync(filename);
-        }
-
-        // delete script (notify everyone...)
-        scriptState.detach();
-        this.server.stateManager.deleteSchema(`s:plugin:${this.id}:script:${name}`);
+      if (!this._scriptStatesByName.has(name)) {
+        throw new Error(`[soundworks:PluginScripting] Cannot update script "${name}", script does not exists`);
       }
 
-      return Promise.resolve();
+      return new Promise(async (resolve, reject) => {
+        this._emitter.once(name, resolve);
+        await this._filesystem.writeFile(name, value);
+      });
+    }
+
+    /**
+     * Resolve when eveything is updated, i.e. script state, nameLists, etc.
+     */
+    async delete(name) {
+      name = sanitizeScriptName(name);
+
+      if (!this._scriptStatesByName.has(name)) {
+        throw new Error(`[soundworks:PluginScripting] Cannot delete script "${name}", script does not exists`);
+      }
+
+      return new Promise(async (resolve, reject) => {
+        this._emitter.once(name, resolve);
+        await this._filesystem.rm(name);
+      });
+    }
+
+    async attach(name) {
+      name = sanitizeScriptName(name);
+
+      const nameIdMap = this._internalsState.get('nameIdMap');
+      const entry = nameIdMap.find(e => e.name === name);
+
+      if (entry) {
+        const state = await this.server.stateManager.attach(`sw:plugin:${this.id}:script`, entry.id);
+        const script = new Script(name, state);
+
+        return Promise.resolve(script);
+      } else {
+        return Promise.reject();
+      }
     }
   }
 }

@@ -1,0 +1,10 @@
+{
+  name: 'live-demo',
+  author: '',
+  clients: {
+    editor: {
+      target: 'browser',
+      default: true,
+    },
+  },
+}

@@ -9,7 +9,7 @@ import '../utils/catch-unhandled-errors.js';
 
 import dataSchema from './schemas/data.js';
 
-import fs from 'fs';
+import { promises as fs } from 'fs';
 import path from 'path';
 import { build, transform } from 'esbuild';
 
@@ -49,85 +49,107 @@ await server.start();
 const data = await server.stateManager.create('data');
 
 
+globalThis.getContext = () => {
+  return { data };
+}
+
 try {
   fs.mkdirSync(path.join(process.cwd(), 'scripts'));
 } catch(err) {
   // directory exists
 }
 
+// @todo - update hook
 data.onUpdate(async updates => {
-  if ('script' in updates) {
-    const script = updates.script;
+  if ('source' in updates) {
+    const script = updates.source;
     console.log(script);
 
     // esbuld needs a file to bundle with deps, transform is isolated from the
     // filesystem (cf. https://esbuild.github.io/api/#transform)
-    // so let's write it in a file before, wich is what we want in any case
+    // so let's write it in a file before, which is what we want in any case
     const filename = path.join(process.cwd(), 'scripts', data.get('filename'));
-    fs.writeFileSync(filename, script);
+    await fs.writeFile(filename, script);
 
 
     // build from file
     // @todo: see https://esbuild.github.io/api/#rebuild
     console.log('>>> start build');
-    const builded = await build({
-      entryPoints: [filename],
-      format: 'esm',
-      platform: 'browser',
-      bundle: true,
-      write: false,
-      outfile: 'ouput',
-      // sourcemap: true,
-    });
-    console.log('>>> end build');
+    let buildResult;
 
-    console.log(builded.outputFiles[0].text);
-    // console.log(builded.toString());
-    const transpiled = builded.outputFiles[0].text;
+    try {
+      const buildResult = await build({
+        entryPoints: [filename],
+        format: 'esm',
+        platform: 'browser',
+        bundle: true,
+        write: false,
+        outfile: 'ouput',
+        // sourcemap: true,
+      });
 
-    data.set({ transpiled });
+      // console.log(buildResult.toString());
+      const transpiled = buildResult.outputFiles[0].text;
+
+      data.set({
+        transpiled,
+        error: null,
+        formattedError: null,
+      });
+    } catch (err) {
+      console.log('>>> build error');
+
+      data.set({
+        error: err.errors,
+        formattedError: formatErrors(err.errors),
+        transpiled: null,
+      });
+
+      return;
+    }
+  }
+
+  if ('transpiled' in updates && updates['transpiled'] !== null) {
+    const url = "data:text/javascript;base64," + btoa(updates['transpiled']);
+    const { foo, test, logContext, launchTimer } = await import(url);
+
+    console.log('> execute transpiled script');
+    console.log(foo);
+    console.log(test());
+    logContext();
+    // launchTimer();
+  }
+  if ('formattedError' in updates && updates['formattedError'] !== null) {
+    console.log('> there was an error');
+    console.log(updates['formattedError']);
   }
 });
 
-const script = `\
+const source = `\
+// support static dependencies
 import { add } from './utils.js';
+// support installed dependencies
+import { getTime } from '@ircam/sc-gettime';
+// support context defined at runtime through global object
+const context = await getContext();
 
 export const foo = 42;
 
 export function test() {
   const result = add(foo, 3);
-  console.log('test ok', result);
+  console.log('> test called: adding 3 to foo');
+  return result;
+}
+
+export function logContext() {
+  const values = context.data.getValues();
+  console.log(values);
+}
+
+export function launchTimer() {
+  setInterval(() => console.log(getTime()), 1000);
 }
 `;
 
-data.set({ script });
+data.set({ source });
 
-// and do your own stuff!
-
-// const scripting = await server.pluginManager.get('scripting');
-// console.log(scripting);
-
-// const source = `
-// export function test() {
-//   console.log('ok');
-// }
-// `;
-
-// // @todo - check https://dev.to/mxfellner/dynamic-import-with-http-urls-in-node-js-7og
-
-// function doimport (str) {
-//   if (globalThis.URL.createObjectURL) {
-//     const blob = new Blob([str], { type: 'text/javascript' })
-//     const url = URL.createObjectURL(blob)
-//     const module = import(url);
-//     URL.revokeObjectURL(url) // GC objectURLs
-//     return module
-//   }
-
-//   const url = "data:text/javascript;base64," + btoa(moduleData)
-//   return import(url)
-// }
-
-// const mod = await doimport(source);
-
-// console.log(mod);

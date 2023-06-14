@@ -1,109 +1,70 @@
-import { formatError, locateError } from './parse-error.js';
+import { isBrowser } from '@ircam/sc-utils';
 
 /**
  * @note: error handling is still a beat weak, this should be improved
  */
 class Script {
-  constructor(scriptState) {
-    this._scriptState = scriptState;
-    this.name = scriptState.get('name');
+  constructor(name, scriptState, plugin) {
+    this.name = name;
 
-    this._scriptState.subscribe(updates => {
-      if ('args' in updates || 'body' in updates) {
-        const { args, body } = this._scriptState.getValues();
-        this._function = new Function(...args, body);
-      }
-    });
-
-    // store subscription to propagate runtime errors locally
-    // cf. @todo in `execute`
-    this._subscriptions = new Set();
-
-    // init function
-    const { args, body } = this._scriptState.getValues();
-    this._function = new Function(...args, body);
+    this._state = scriptState;
+    this._plugin = plugin;
+    this._url = null;
   }
 
-  async setValue(value) {
-    await this._scriptState.set({ requestValue: value });
+  get source() {
+    return this._state.get('source');
   }
 
-  getValue() {
-    return this._scriptState.get('value');
+  // - implement both side (on plugin and on script), we don't really need to choose
+  // set source(value) {
+    // filesystem.writeFile(this.name, value);
+  // }
+
+  get error() {
+    return this._state.get('error');
   }
 
-  subscribe(func) {
-    this._subscriptions.add(func);
+  // could be usefull for debugging
+  get transpiled() {
+    return this._state.get('transpiled');
+  }
 
-    const unsubscribe = this._scriptState.subscribe(updates => {
-      // value is set with arg and body
-      if (('value' in updates) || ('error' in updates)) {
-        if (updates.error) {
-          this._logError(updates.error);
-        }
+  async update(value) {
+    await this._plugin.update(this.name, value);
+  }
 
-        func(updates);
-      }
-    });
+  async delete() {
+    await this._plugin.delete(this.name);
+  }
 
-    return () => {
-      this._subscriptions.delete(func);
-      unsubscribe();
-    };
+  async import() {
+    const transpiled = this._state.getUnsafe('transpiled');
+    const filename = this._state.get('filename');
+    // return module
+    if (isBrowser()) {
+      URL.revokeObjectURL(this._url);
+
+      const file = new File([transpiled], filename, { type: 'text/javascript' });
+      this._url = URL.createObjectURL(file);
+      // the webpack ignore comment is not a huge problem as this is hidden in the lib
+      return await import(/* webpackIgnore: true */url);
+    } else {
+      const url = "data:text/javascript;base64," + btoa(transpiled);
+      return await import(url);
+    }
   }
 
   async detach() {
-    if (this._scriptState._client.id === this._scriptState._owner) {
-      // we are server side, so, do nothing for now as we would really delete
-      // the state, which is something we don't want because it would delete
-      // the script for every clients.
-      //
-      // so, let's pretend it does what we think it should do for now
-      if (this._onDetachFunction) {
-        this._onDetachFunction();
-      }
-    } else {
-      return this._scriptState.detach();
-    }
+    await this._state.detach();
   }
 
-  onDetach(func) {
-    this._onDetachFunction = func;
-    this._scriptState.onDetach(func);
+  onUpdate(callback, executeListener = false) {
+    return this._state.onUpdate(callback, executeListener);
   }
 
-  execute(...args) {
-    try {
-      return this._function(...args);
-    } catch(err) {
-      // @todo - we would like to propagate runtime errors on the network
-      // to facilitate remote debugging, but we don't want to bloat the
-      // network. Implementing that would imply a far more robust Object handling
-      // on the StateManager side (which should be done at some point).
-      // for now just propagate the runtime error locally
-      const error = {
-        name: err.name,
-        message: err.message,
-        code: '',
-      }
-
-      if (
-        err.name === 'ReferenceError' ||
-        err.name === 'TypeError'
-      ) {
-        const code = this._scriptState.get('value');
-        const { line, column } = locateError(code, err.message);
-        const prettyError = formatError(code, line, column);
-        error.code = prettyError;
-      }
-
-      this._logError(error);
-      this._subscriptions.forEach(callback => callback({ error }));
-    }
-  }
-
-  _logError(error) {
-    console.error(`[script:${this.name}] ${error.name}: ${error.message}\n\n${error.code}`);
+  onDetach(callback) {
+    this._state.onDetach(callback);
   }
 }
 

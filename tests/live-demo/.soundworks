@@ -1,0 +1,5 @@
+{
+  "name": "live-demo",
+  "eslint": true,
+  "language": "js"
+}
