@@ -1,3 +1,6 @@
+import { isString } from '@ircam/sc-utils';
+import slugify from 'slugify';
+
 export function formatErrors(errors) {
   const { text, location } = errors[0];
   const lineSize = location.line.toString().length;
@@ -22,3 +25,17 @@ export function formatErrors(errors) {
   return msg;
 }
 
+export function sanitizeScriptName(name) {
+  if (!isString(name)) {
+    throw new Error('[soundworks:PluginScripting] Invalid script name, should be a string');
+  }
+
+  // don't go lower case as we may want to have class files, e.g. MyClass.js
+  name = slugify(name);
+  // @todo - if file extention is given, keep it untouched
+  if (!name.endsWith('.js')) {
+    return `${name}.js`;
+  }
+
+  return name;
+}

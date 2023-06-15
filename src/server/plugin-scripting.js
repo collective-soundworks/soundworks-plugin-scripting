@@ -1,34 +1,17 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { EventEmitter } from 'node:events';
 
 import { isString } from '@ircam/sc-utils';
 import pluginFilesystem from '@soundworks/plugin-filesystem/server.js';
 import { build } from 'esbuild';
-import slugify from 'slugify';
 
-import { formatErrors } from './utils.js';
+import { formatErrors, sanitizeScriptName } from '../common/utils.js';
 import Script from '../common/Script.js';
 
 const scriptStoreSymbol = Symbol('sw:plugin:scripting');
 
 globalThis.getGlobalScriptingContext = function() {
   return globalThis[scriptStoreSymbol];
-}
-
-function sanitizeScriptName(name) {
-  if (!isString(name)) {
-    throw new Error('[soundworks:PluginScripting] Invalid script name, should be a string');
-  }
-
-  // don't go lower case as we may want to have class files, e.g. MyClass.js
-  name = slugify(name);
-  // @todo - if file extention is given, keep it untouched
-  if (!name.endsWith('.js')) {
-    return `${name}.js`;
-  }
-
-  return name;
 }
 
 const pluginFactory = function(Plugin) {
@@ -48,7 +31,6 @@ const pluginFactory = function(Plugin) {
       this._scriptStatesByName = new Map();
       this._internalsState = null;
       this._filesystem = null;
-      this._emitter = new EventEmitter();
 
       this.server.pluginManager.register(`sw:plugin:${this.id}:filesystem`, pluginFilesystem);
 
@@ -61,6 +43,10 @@ const pluginFactory = function(Plugin) {
         nameIdMap: {
           type: 'any',
           default: [],
+        },
+        triggerScriptName: {
+          type: 'string',
+          event: true,
         },
       };
 
@@ -92,7 +78,7 @@ const pluginFactory = function(Plugin) {
     }
 
     /** @private */
-    async _updateInternals() {
+    async _updateInternals(triggerScriptName = null) {
       let nameList = [];
       let nameIdMap = [];
 
@@ -101,7 +87,11 @@ const pluginFactory = function(Plugin) {
         nameIdMap.push({ name, id: state.id });
       }
 
-      await this._internalsState.set({ nameList, nameIdMap });
+      if (triggerScriptName === null) {
+        await this._internalsState.set({ nameList, nameIdMap });
+      } else {
+        await this._internalsState.set({ nameList, nameIdMap, triggerScriptName });
+      }
     }
 
     /** @private */
@@ -159,6 +149,16 @@ const pluginFactory = function(Plugin) {
     }
 
     /** @private */
+    _resolveOnTriggerScriptName(name, resolve) {
+      const unsubscribe = this._internalsState.onUpdate(updates => {
+        if ('triggerScriptName' in updates && updates.triggerScriptName === name) {
+          unsubscribe();
+          resolve();
+        }
+      });
+    }
+
+    /** @private */
     async start() {
       this._internalsState = await this.server.stateManager.create(`sw:plugin:${this.id}:internals`);
       // use the pirvate `unsafeGet` to bypass the server init check
@@ -198,8 +198,7 @@ const pluginFactory = function(Plugin) {
             }
           }
 
-          await this._updateInternals();
-          this._emitter.emit(name);
+          await this._updateInternals(name);
         }
       });
 
@@ -220,7 +219,6 @@ const pluginFactory = function(Plugin) {
      * @param {Object} ctx - Object to store in global context
      */
     setGlobalScriptingContext(ctx) {
-      // @todo - review
       globalThis[scriptStoreSymbol] = ctx;
     }
 
@@ -285,7 +283,7 @@ const pluginFactory = function(Plugin) {
       }
 
       return new Promise(async (resolve, reject) => {
-        this._emitter.once(name, resolve);
+        this._resolveOnTriggerScriptName(name, resolve);
         await this._filesystem.writeFile(name, value);
       });
     }
@@ -309,7 +307,7 @@ const pluginFactory = function(Plugin) {
       }
 
       return new Promise(async (resolve, reject) => {
-        this._emitter.once(name, resolve);
+        this._resolveOnTriggerScriptName(name, resolve);
         await this._filesystem.writeFile(name, value);
       });
     }
@@ -328,7 +326,7 @@ const pluginFactory = function(Plugin) {
       }
 
       return new Promise(async (resolve, reject) => {
-        this._emitter.once(name, resolve);
+        this._resolveOnTriggerScriptName(name, resolve);
         await this._filesystem.rm(name);
       });
     }

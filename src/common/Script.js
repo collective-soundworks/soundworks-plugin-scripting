@@ -3,7 +3,7 @@ import { isBrowser } from '@ircam/sc-utils';
 /**
  * A Script instance represent a script that can be distributed and modified
  * at runtime. It is retrieved by a `@soundworks/plugin-scripting` plugin when
- * it's `attach` method is called
+ * it's `attach` method is called.
  */
 class Script {
   constructor(name, scriptState, plugin) {
