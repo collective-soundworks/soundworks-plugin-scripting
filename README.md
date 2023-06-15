@@ -1,8 +1,8 @@
-# soundworks - scripting plugin
+# soundworks | plugin scripting
 
 [![npm version](https://badge.fury.io/js/@soundworks%2Fplugin-scripting.svg)](https://badge.fury.io/js/@soundworks%2Fplugin-scripting)
 
-[`soundworks`](https://soundworks.dev) plugin for runtime scripting. The plugin allows to define entry point in the application that enable the end user to modify the behavior of the distributed application at runtime, following an end-user programming strategy.
+[`soundworks`](https://soundworks.dev) plugin for runtime distributed scripting.
 
 ## Table of Contents
 
