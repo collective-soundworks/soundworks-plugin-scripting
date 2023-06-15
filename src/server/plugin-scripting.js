@@ -29,11 +29,6 @@ const pluginFactory = function(Plugin) {
         dirname: null,
       }, options);
 
-      if (!isString(this.options.dirname) && this.options.dirname !== null) {
-        throw new Error(`[soundworks:PluginScripting] Invalid argument for method switch, "dirname" should be a string or null`);
-      }
-      // make sure dirname is null or string
-
       this._scriptStatesByName = new Map();
       this._internalsState = null;
       this._filesystem = null;
@@ -208,9 +203,7 @@ const pluginFactory = function(Plugin) {
         }
       });
 
-      if (this.options.dirname !== null) {
-        await this.switch(this.options.dirname);
-      }
+      await this.switch(this.options.dirname);
     }
 
     /**
@@ -272,9 +265,11 @@ const pluginFactory = function(Plugin) {
         dirname = dirname.dirname;
       }
 
-      if (!isString(dirname)) {
-        throw new Error(`[soundworks:PluginScripting] Invalid argument for method switch, "dirname" should be a string`);
+      if (!isString(this.options.dirname) && this.options.dirname !== null) {
+        throw new Error(`[soundworks:PluginScripting] Invalid argument for method switch, "dirname" should be a string or null`);
       }
+
+      this.options.dirname = dirname;
 
       for (let [name, state] of this._scriptStatesByName.entries()) {
         await state.detach();
@@ -288,6 +283,11 @@ const pluginFactory = function(Plugin) {
       });
 
       await this._filesystem.switch({ dirname });
+
+      // allow plugin to be in some idel state
+      if (dirname === null) {
+        return Promise.resolve();
+      }
       // init all states from current tree
       await this._createScripts(this._filesystem.getTree());
       await this._updateInternals();
