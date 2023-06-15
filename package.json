@@ -12,12 +12,10 @@
     "./server.js": "./src/server/plugin-scripting.js"
   },
   "scripts": {
-    "clean": "rm -Rf client && rm -Rf server && rm -Rf common",
-    "toc": "markdown-toc -i README.md",
     "api": "jsdoc-to-readme --src src/**/*.js",
-    "prepublishOnly": "npm run build",
-    "build": "npm run toc && npm run clean && babel src --out-dir .",
-    "dev": "npm run build && chokidar src/ -c \"babel src --out-dir .\""
+    "prepublishOnly": "npm run api && npm run toc",
+    "toc": "markdown-toc -i README.md",
+    "test": "mocha"
   },
   "publishConfig": {
     "access": "public"
@@ -33,7 +31,10 @@
     "slugify": "^1.4.5"
   },
   "devDependencies": {
+    "@soundworks/core": "^4.0.0-alpha.6",
+    "chai": "^4.3.7",
     "jsdoc-to-readme": "^1.1.0",
-    "markdown-toc": "^1.2.0"
+    "markdown-toc": "^1.2.0",
+    "mocha": "^10.2.0"
   }
 }

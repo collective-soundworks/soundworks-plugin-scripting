@@ -2,8 +2,7 @@ export function formatErrors(errors) {
   const { text, location } = errors[0];
   const lineSize = location.line.toString().length;
 
-  console.log(text, location);
-
+  // mimic error message from esbuild
   let msg = `\
 [ERROR] ${text}
 

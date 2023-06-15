@@ -10,17 +10,24 @@ import slugify from 'slugify';
 import { formatErrors } from './utils.js';
 import Script from '../common/Script.js';
 
+const scriptStoreSymbol = Symbol('sw:plugin:scripting');
+
+globalThis.getScriptingContext = function() {
+  return globalThis[scriptStoreSymbol];
+}
+
 function implement() {
   throw new Error('not implemented');
 }
 
 function sanitizeScriptName(name) {
   if (!isString(name)) {
-    throw new Error('[soundworks:PluginScripting] Invalid script name, should be string');
+    throw new Error('[soundworks:PluginScripting] Invalid script name, should be a string');
   }
 
-  name = slugify(name, { lower: true });
-
+  // don't go lower case as we may want to have class files, e.g. MyClass.js
+  name = slugify(name);
+  // @todo - if file extention is given, keep it untouched
   if (!name.endsWith('.js')) {
     return `${name}.js`;
   }
@@ -35,21 +42,22 @@ const pluginFactory = function(Plugin) {
    * @classdesc This is a description of the MyClass class.
    */
   class PluginScriptingServer extends Plugin {
+    /** @private */
     constructor(server, id, options) {
       super(server, id);
 
       const defaults = {
-        dirname: path.join(process.cwd(), '.db', 'scripts'),
-        // @todo - allow several script templates
-        defaultScriptSource: null,
+        dirname: null,
       };
 
       this.options = Object.assign({}, defaults, options);
 
-      // use filesystem plugin to watch dirname
-      this.server.pluginManager.register(`sw:plugin:${this.id}:filesystem`, pluginFilesystem, {
-        dirname: this.options.dirname,
-      });
+      this._scriptStatesByName = new Map();
+      this._internalsState = null;
+      this._filesystem = null;
+      this._emitter = new EventEmitter();
+
+      this.server.pluginManager.register(`sw:plugin:${this.id}:filesystem`, pluginFilesystem);
 
       // states
       const internalsSchema = {
@@ -88,14 +96,9 @@ const pluginFactory = function(Plugin) {
 
       this.server.stateManager.registerSchema(`sw:plugin:${this.id}:internals`, internalsSchema);
       this.server.stateManager.registerSchema(`sw:plugin:${this.id}:script`, scriptSchema);
-
-      // private
-      this._scriptStatesByName = new Map();
-      this._internalsState = null;
-      this._filesystem = null;
-      this._emitter = new EventEmitter();
     }
 
+    /** @private */
     async _updateInternals() {
       let nameList = [];
       let nameIdMap = [];
@@ -108,6 +111,7 @@ const pluginFactory = function(Plugin) {
       await this._internalsState.set({ nameList, nameIdMap });
     }
 
+    /** @private */
     async _createScripts(node) {
       if (node.type === 'file') {
         const name = sanitizeScriptName(node.relPath);
@@ -116,14 +120,13 @@ const pluginFactory = function(Plugin) {
           // create state associated to the file
           const filename = node.path;
           const source = await fs.readFile(filename);
-          // filename must be set here so that the hook can rely on the value
+          // filename must be set at creation so that the hook can rely on the value
           const state = await this.server.stateManager.create(`sw:plugin:${this.id}:script`, {
             filename
           });
-          // we use set here trigger hook from filesystem
-          await state.set({ source: source.toString() }, { fs: true });
 
-          // store infos
+          await this._updateState(state, source.toString());
+          // store the state
           this._scriptStatesByName.set(name, state);
         }
       } else if (node.type === 'directory') {
@@ -133,53 +136,52 @@ const pluginFactory = function(Plugin) {
       }
     }
 
+    async _updateState(state, source) {
+      try {
+        const filename = state.get('filename');
+        const buildResult = await build({
+          entryPoints: [filename],
+          format: 'esm',
+          platform: 'browser',
+          bundle: true,
+          write: false,
+          outfile: 'ouput',
+          // @todo: sourcemaps need to be parsed separately
+          // sourcemap: true,
+        });
+
+        await state.set({
+          source: source,
+          transpiled: buildResult.outputFiles[0].text,
+          error: null,
+        });
+      } catch (err) {
+        await state.set({
+          source: source,
+          error: formatErrors(err.errors),
+          transpiled: null,
+        });
+      }
+    }
+
     /** @private */
     async start() {
       this._internalsState = await this.server.stateManager.create(`sw:plugin:${this.id}:internals`);
-
-      this.server.stateManager.registerUpdateHook(`sw:plugin:${this.id}:script`, async (updates, currentValues, context) => {
-        if (context.fs && 'source' in updates) {
-          // transpile source
-          try {
-            const buildResult = await build({
-              entryPoints: [currentValues.filename],
-              format: 'esm',
-              platform: 'browser',
-              bundle: true,
-              write: false,
-              outfile: 'ouput',
-              // sourcemap: true, // sourcemaps need to be parsed separately
-            });
-
-            return {
-              transpiled: buildResult.outputFiles[0].text,
-              error: null,
-              ...updates,
-            };
-          } catch (err) {
-            return {
-              error: formatErrors(err.errors),
-              transpiled: null,
-              ...updates,
-            };
-          }
-        } else {
-          throw new Error(`[soundworks:PluginScripting] updates should always go through filesystem`);
-        }
-      });
-
       // use the pirvate `unsafeGet` to bypass the server init check
       this._filesystem = await this.server.pluginManager.unsafeGet(`sw:plugin:${this.id}:filesystem`);
 
+      // script state are always updated from filesystem updates
       this._filesystem.onUpdate(async ({ tree, events }) => {
+        if (!events) {
+          return;
+        }
+
         for (let { type, node } of events) {
           const name = sanitizeScriptName(node.relPath);
 
           switch (type) {
             case 'create': {
               await this._createScripts(node);
-              await this._updateInternals(name);
-              this._emitter.emit(name);
               break;
             }
             case 'update': {
@@ -187,9 +189,7 @@ const pluginFactory = function(Plugin) {
                 const state = this._scriptStatesByName.get(name);
                 const source = await fs.readFile(node.path);
                 // trigger hook from filesystem
-                await state.set({ source: source.toString() }, { fs: true });
-                await this._updateInternals(name);
-                this._emitter.emit(name);
+                await this._updateState(state, source.toString());
               }
               break;
             }
@@ -199,47 +199,70 @@ const pluginFactory = function(Plugin) {
                 this._scriptStatesByName.delete(name);
 
                 await state.delete();
-                await this._updateInternals(name);
-                this._emitter.emit(name);
               }
               break;
             }
           }
+
+          await this._updateInternals();
+          this._emitter.emit(name);
         }
       });
 
-      // init with current tree
-      await this._createScripts(this._filesystem.getTree());
-      await this._updateInternals();
+      // @todo move to switch
+      if (this.options.dirname) {
+        await this._filesystem.switch({ dirname: this.options.dirname });
+        // init all states from current tree
+        await this._createScripts(this._filesystem.getTree());
+        await this._updateInternals();
+      }
     }
 
     /**
-     * Registers a global context object to be used in scripts.
+     * Registers a global context object to be used in scripts. Note that the
+     * context is store globally, so several scripting plugins running in parallel
+     * will share the same underlying object.
+     *
      * @param {Object} ctx - Object to register as global context.
      */
-    setContext(ctx) {
-      globalsThis.getContext = function() {
-        return ctx;
-      }
+    setScriptingContext(ctx) {
+      // @todo - review
+      globalThis[scriptStoreSymbol] = ctx;
     }
 
     /**
      * Returns the list of all available scripts.
      * @return {Array}
      */
-    getList() {
+    getScriptNames() {
       return this._internalsState.get('nameList');
     }
 
     /**
-     *
-     *
+     * Conveniance method that return the underlying filesystem tree. Can be
+     * usefull to reuse components created for the filesystem (e.g. sc-filesystem)
      */
-    onUpdate(callback, executeListener = false) {
-      return this._internalsState.onUpdate(callback, executeListener);
+    getTree() {
+      return this._filesystem.getTree();
     }
 
-    async switch() {
+    /**
+     * Register callback to execute when a script is created or deleted. The
+     * callback will receive the updated list of script names and the updated
+     * file tree.
+     * @param {Function} callback - Callback function to execute
+     * @param {boolean} [executeListener=false] - If true, execute the given
+     *  callback immediately.
+     */
+    onUpdate(callback, executeListener = false) {
+      return this._internalsState.onUpdate(() => {
+        callback(this.getScriptNames(), this.getTree())
+      }, executeListener);
+    }
+
+    // accept both `dirname` and `{ dirname }` so it can be switched alongside
+    // filesystem consistently
+    async switch(dirname) {
       implement();
 
       // delete all script states
@@ -247,15 +270,15 @@ const pluginFactory = function(Plugin) {
       // switch filesystem plugin
     }
 
-    async create(name, value = null) {
+    async createScript(name, value = '') {
       name = sanitizeScriptName(name);
 
-      if (value === null) {
-        if (this.options.defaultScriptSource !== null) {
-          value = this.options.defaultScriptSource;
-        } else {
-          value = '';
-        }
+      if (this._scriptStatesByName.has(name)) {
+        throw new Error(`[soundworks:PluginScripting] Cannot create script "${name}", script already exists`);
+      }
+
+      if (!isString(value)) {
+        throw new Error(`[soundworks:PluginScripting] Invalid value for script "${name}", should be a string`);
       }
 
       return new Promise(async (resolve, reject) => {
@@ -267,13 +290,17 @@ const pluginFactory = function(Plugin) {
     /**
      * Resolve when eveything is updated, i.e. script state, nameLists, etc.
      */
-    async update(name, value) {
+    async updateScript(name, value) {
       name = sanitizeScriptName(name);
 
       if (!this._scriptStatesByName.has(name)) {
         throw new Error(`[soundworks:PluginScripting] Cannot update script "${name}", script does not exists`);
       }
 
+      if (!isString(value)) {
+        throw new Error(`[soundworks:PluginScripting] Invalid value for script "${name}", should be a string`);
+      }
+
       return new Promise(async (resolve, reject) => {
         this._emitter.once(name, resolve);
         await this._filesystem.writeFile(name, value);
@@ -283,7 +310,7 @@ const pluginFactory = function(Plugin) {
     /**
      * Resolve when eveything is updated, i.e. script state, nameLists, etc.
      */
-    async delete(name) {
+    async deleteScript(name) {
       name = sanitizeScriptName(name);
 
       if (!this._scriptStatesByName.has(name)) {
@@ -304,7 +331,7 @@ const pluginFactory = function(Plugin) {
 
       if (entry) {
         const state = await this.server.stateManager.attach(`sw:plugin:${this.id}:script`, entry.id);
-        const script = new Script(name, state);
+        const script = new Script(name, state, this);
 
         return Promise.resolve(script);
       } else {

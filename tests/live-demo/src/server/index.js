@@ -89,5 +89,6 @@ script.onDetach(() => {
 
 await new Promise(resolve => setTimeout(resolve, 2000));
 
+console.log('> delete script');
 scripting.delete('test');
 

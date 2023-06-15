@@ -36,7 +36,10 @@ class Script {
   async import() {
     const transpiled = this._state.getUnsafe('transpiled');
     const filename = this._state.get('filename');
-    // return module
+
+    // @note 2023-06-15 - we need this branch because File is still experimental
+    // and only available in node 20, when node 20 will be LTS or so we will
+    // be able to remove this branching
     if (isBrowser()) {
       URL.revokeObjectURL(this._url);
 
