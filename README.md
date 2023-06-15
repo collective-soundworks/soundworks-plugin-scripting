@@ -22,63 +22,101 @@ A working example can be found in the [https://github.com/collective-soundworks/
 
 <!-- api -->
 
-### Classes
-
-<dl>
-<dt><a href="#Script">Script</a></dt>
-<dd></dd>
-<dt><a href="#PluginScriptingServer">PluginScriptingServer</a></dt>
-<dd><p>This is a description of the MyClass class.</p>
-</dd>
-</dl>
-
 <a name="Script"></a>
 
 ### Script
-**Kind**: global class  
-**Note:**: error handling is still a beat weak, this should be improved  
-<a name="PluginScriptingServer"></a>
-
-### PluginScriptingServer
-This is a description of the MyClass class.
+A Script instance represent a script that can be distributed and modified
+at runtime. It is retrieved by a `@soundworks/plugin-scripting` plugin when
+it's `attach` method is called
 
 **Kind**: global class  
 
-* [PluginScriptingServer](#PluginScriptingServer)
-    * [.setContext(ctx)](#PluginScriptingServer+setContext)
-    * [.getList()](#PluginScriptingServer+getList) ⇒ <code>Array</code>
-    * [.update()](#PluginScriptingServer+update)
-    * [.delete()](#PluginScriptingServer+delete)
+* [Script](#Script)
+    * [.source](#Script+source) : <code>string</code>
+    * [.error](#Script+error) : <code>string</code>
+    * [.transpiled](#Script+transpiled) : <code>string</code>
+    * [.import()](#Script+import) ⇒ <code>Promise</code>
+    * [.detach()](#Script+detach)
+    * [.onUpdate(callback, [executeListener])](#Script+onUpdate) ⇒ <code>function</code>
+    * [.onDetach(callback)](#Script+onDetach)
+    * [.update(value)](#Script+update)
+    * [.delete()](#Script+delete)
 
-<a name="PluginScriptingServer+setContext"></a>
+<a name="Script+source"></a>
 
-#### pluginScriptingServer.setContext(ctx)
-Registers a global context object to be used in scripts.
+#### script.source : <code>string</code>
+**Kind**: instance property of [<code>Script</code>](#Script)  
+**Read only**: true  
+<a name="Script+error"></a>
 
-**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)  
+#### script.error : <code>string</code>
+**Kind**: instance property of [<code>Script</code>](#Script)  
+**Read only**: true  
+<a name="Script+transpiled"></a>
+
+#### script.transpiled : <code>string</code>
+**Kind**: instance property of [<code>Script</code>](#Script)  
+**Read only**: true  
+<a name="Script+import"></a>
+
+#### script.import() ⇒ <code>Promise</code>
+Dynamically import the transpiled module.
+[https://caniuse.com/?search=import()](https://caniuse.com/?search=import())
+
+**Kind**: instance method of [<code>Script</code>](#Script)  
+**Returns**: <code>Promise</code> - Promise which fulfills to an object containing all exports
+ the script.  
+<a name="Script+detach"></a>
+
+#### script.detach()
+Stop listening for updates
+
+**Kind**: instance method of [<code>Script</code>](#Script)  
+<a name="Script+onUpdate"></a>
+
+#### script.onUpdate(callback, [executeListener]) ⇒ <code>function</code>
+Register a callback to be executed when the script is updated.
+
+**Kind**: instance method of [<code>Script</code>](#Script)  
+**Returns**: <code>function</code> - Function that unregister the callback when executed.  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| callback | <code>function</code> |  | Callback function |
+| [executeListener] | <code>boolean</code> | <code>false</code> | If true, execute the given  callback immediately. |
+
+<a name="Script+onDetach"></a>
+
+#### script.onDetach(callback)
+Register a callback to be executed when the script is detached, i.e. when
+`detach` as been called, or when the script has been deleted
+
+**Kind**: instance method of [<code>Script</code>](#Script)  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| ctx | <code>Object</code> | Object to register as global context. |
+| callback | <code>function</code> | Callback function |
 
-<a name="PluginScriptingServer+getList"></a>
+<a name="Script+update"></a>
 
-#### pluginScriptingServer.getList() ⇒ <code>Array</code>
-Returns the list of all available scripts.
+#### script.update(value)
+Alias for `plugin.updateScript(name, value)`, calling this method will update
+the source of the script. The update will be propagated to all attached scripts
 
-**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)  
-<a name="PluginScriptingServer+update"></a>
+**Kind**: instance method of [<code>Script</code>](#Script)  
 
-#### pluginScriptingServer.update()
-Resolve when eveything is updated, i.e. script state, nameLists, etc.
+| Param | Type | Description |
+| --- | --- | --- |
+| value | <code>string</code> | New source code for the script. |
 
-**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)  
-<a name="PluginScriptingServer+delete"></a>
+<a name="Script+delete"></a>
 
-#### pluginScriptingServer.delete()
-Resolve when eveything is updated, i.e. script state, nameLists, etc.
+#### script.delete()
+Alias for `plugin.deleteScript(name)`, calling this method will entirely delete
+the script: the file and all associated scripts. If you just want to stop
+using the current script without deleting it, call detach instead
 
-**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)  
+**Kind**: instance method of [<code>Script</code>](#Script)  
 
 <!-- apistop -->
 

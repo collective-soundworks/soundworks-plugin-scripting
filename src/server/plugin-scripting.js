@@ -12,7 +12,7 @@ import Script from '../common/Script.js';
 
 const scriptStoreSymbol = Symbol('sw:plugin:scripting');
 
-globalThis.getScriptingContext = function() {
+globalThis.getGlobalScriptingContext = function() {
   return globalThis[scriptStoreSymbol];
 }
 
@@ -225,7 +225,7 @@ const pluginFactory = function(Plugin) {
      *
      * @param {Object} ctx - Object to register as global context.
      */
-    setScriptingContext(ctx) {
+    setGlobalScriptingContext(ctx) {
       // @todo - review
       globalThis[scriptStoreSymbol] = ctx;
     }

@@ -1,11 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { Server } from '@soundworks/core/server.js';
 import { assert } from 'chai';
 
-import { Server } from '@soundworks/core/server.js';
 import pluginScriptingServer from '../src/server/plugin-scripting.js';
-import Script from '../src/common/script.js';
+// import Script from '../src/common/script.js';
 
 const staticScripts = path.join(process.cwd(), 'tests', 'static-scripts');
 const dynamicScripts = path.join(process.cwd(), 'tests', 'dynamic-scripts');
@@ -413,11 +413,11 @@ describe(`[server] PluginScripting`, () => {
       await server.start();
 
       const plugin = await server.pluginManager.get('scripting');
-      const script = await plugin.attach('simple-default.js');
-      const expected = fs.readFileSync(path.join(staticScripts, 'simple-default.js')).toString();
+      const script = await plugin.attach('export-default.js');
+      const expected = fs.readFileSync(path.join(staticScripts, 'export-default.js')).toString();
 
       // assert.equal(script instanceof Script, true); // does not work for whatever reason
-      assert.equal(script.name, 'simple-default.js');
+      assert.equal(script.name, 'export-default.js');
       assert.equal(script.source, expected);
 
       await server.stop();
@@ -437,8 +437,8 @@ describe(`[server] PluginScripting`, () => {
         test: new Test(),
       };
 
-      plugin.setScriptingContext(ctx);
-      const res = globalThis.getScriptingContext();
+      plugin.setGlobalScriptingContext(ctx);
+      const res = getGlobalScriptingContext();
 
       assert.deepEqual(res, ctx);
 

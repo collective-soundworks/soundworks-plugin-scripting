@@ -12,3 +12,4 @@
 - [ ] script templates (`plugin.createWithTemplate` ?)
 - [ ] allow other extentions than .js (.md, .json, etc.)
 
+- [ ] document that it should use named export
