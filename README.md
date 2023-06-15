@@ -8,6 +8,26 @@
 
 <!-- toc -->
 
+- [Installation](#installation)
+- [Example](#example)
+- [Usage](#usage)
+- [API](#api)
+  * [Script](#script)
+    + [script.source : string](#scriptsource--string)
+    + [script.error : string](#scripterror--string)
+    + [script.transpiled : string](#scripttranspiled--string)
+    + [script.import() ⇒ Promise](#scriptimport-%E2%87%92-promise)
+    + [script.detach()](#scriptdetach)
+    + [script.onUpdate(callback, [executeListener]) ⇒ function](#scriptonupdatecallback-executelistener-%E2%87%92-function)
+    + [script.onDetach(callback)](#scriptondetachcallback)
+    + [script.update(value)](#scriptupdatevalue)
+    + [script.delete()](#scriptdelete)
+- [Security concerns](#security-concerns)
+- [Credits](#credits)
+- [License](#license)
+
+<!-- tocstop -->
+
 ## Installation
 
 ```sh
@@ -128,11 +148,9 @@ using the current script without deleting it, call detach instead
 
 For obvious security reasons, in production or public settings, make sure to disable or protect access to any online editor.
 
-@todo - document basic HTTP authentication w/ soundworks
-
 ## Credits
 
-The code has been initiated in the framework of the WAVE and CoSiMa research projects, funded by the French National Research Agency (ANR).
+[https://soundworks.dev/credits.html](https://soundworks.dev/credits.html)
 
 ## License
 
