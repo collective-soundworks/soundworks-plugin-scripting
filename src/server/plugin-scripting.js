@@ -5,6 +5,7 @@ import { EventEmitter } from 'node:events';
 import { isString } from '@ircam/sc-utils';
 import pluginFilesystem from '@soundworks/plugin-filesystem/server.js';
 import { build } from 'esbuild';
+import slugify from 'slugify';
 
 import { formatErrors } from './utils.js';
 import Script from '../common/Script.js';
@@ -18,6 +19,8 @@ function sanitizeScriptName(name) {
     throw new Error('[soundworks:PluginScripting] Invalid script name, should be string');
   }
 
+  name = slugify(name, { lower: true });
+
   if (!name.endsWith('.js')) {
     return `${name}.js`;
   }
@@ -26,7 +29,12 @@ function sanitizeScriptName(name) {
 }
 
 const pluginFactory = function(Plugin) {
-  return class PluginScripting extends Plugin {
+  /**
+   * This is a description of the MyClass constructor function.
+
+   * @classdesc This is a description of the MyClass class.
+   */
+  class PluginScriptingServer extends Plugin {
     constructor(server, id, options) {
       super(server, id);
 
@@ -125,6 +133,7 @@ const pluginFactory = function(Plugin) {
       }
     }
 
+    /** @private */
     async start() {
       this._internalsState = await this.server.stateManager.create(`sw:plugin:${this.id}:internals`);
 
@@ -155,7 +164,7 @@ const pluginFactory = function(Plugin) {
             };
           }
         } else {
-          throw new Error(`[soundworks/plugin-scripting] updates should always go through filesystem`);
+          throw new Error(`[soundworks:PluginScripting] updates should always go through filesystem`);
         }
       });
 
@@ -164,7 +173,7 @@ const pluginFactory = function(Plugin) {
 
       this._filesystem.onUpdate(async ({ tree, events }) => {
         for (let { type, node } of events) {
-          const name = node.relPath;
+          const name = sanitizeScriptName(node.relPath);
 
           switch (type) {
             case 'create': {
@@ -204,16 +213,28 @@ const pluginFactory = function(Plugin) {
       await this._updateInternals();
     }
 
-    setContext(obj) {
+    /**
+     * Registers a global context object to be used in scripts.
+     * @param {Object} ctx - Object to register as global context.
+     */
+    setContext(ctx) {
       globalsThis.getContext = function() {
-        return obj;
+        return ctx;
       }
     }
 
+    /**
+     * Returns the list of all available scripts.
+     * @return {Array}
+     */
     getList() {
       return this._internalsState.get('nameList');
     }
 
+    /**
+     *
+     *
+     */
     onUpdate(callback, executeListener = false) {
       return this._internalsState.onUpdate(callback, executeListener);
     }
@@ -287,10 +308,12 @@ const pluginFactory = function(Plugin) {
 
         return Promise.resolve(script);
       } else {
-        return Promise.reject();
+        throw new Error(`[soundworks:PluginScripting] Cannot attach script "${name}", script does not exists`);
       }
     }
   }
+
+  return PluginScriptingServer;
 }
 
 export default pluginFactory;

@@ -16,11 +16,6 @@ class Script {
     return this._state.get('source');
   }
 
-  // - implement both side (on plugin and on script), we don't really need to choose
-  // set source(value) {
-    // filesystem.writeFile(this.name, value);
-  // }
-
   get error() {
     return this._state.get('error');
   }

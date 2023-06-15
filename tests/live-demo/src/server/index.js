@@ -80,6 +80,8 @@ export function square(num) {
 `);
 
 console.log(script.source);
+console.log(script.error);
+console.log(script.transpiled);
 
 script.onDetach(() => {
   console.log('> script detached');
