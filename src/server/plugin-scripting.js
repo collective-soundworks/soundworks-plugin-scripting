@@ -16,10 +16,6 @@ globalThis.getGlobalScriptingContext = function() {
   return globalThis[scriptStoreSymbol];
 }
 
-function implement() {
-  throw new Error('not implemented');
-}
-
 function sanitizeScriptName(name) {
   if (!isString(name)) {
     throw new Error('[soundworks:PluginScripting] Invalid script name, should be a string');
@@ -37,12 +33,9 @@ function sanitizeScriptName(name) {
 
 const pluginFactory = function(Plugin) {
   /**
-   * This is a description of the MyClass constructor function.
-
-   * @classdesc This is a description of the MyClass class.
+   * Server-side representation of the soundworks' scripting plugin
    */
   class PluginScriptingServer extends Plugin {
-    /** @private */
     constructor(server, id, options) {
       super(server, id);
 
@@ -136,6 +129,7 @@ const pluginFactory = function(Plugin) {
       }
     }
 
+    /** @private */
     async _updateState(state, source) {
       try {
         const filename = state.get('filename');
@@ -221,9 +215,9 @@ const pluginFactory = function(Plugin) {
     /**
      * Registers a global context object to be used in scripts. Note that the
      * context is store globally, so several scripting plugins running in parallel
-     * will share the same underlying object.
-     *
-     * @param {Object} ctx - Object to register as global context.
+     * will share the same underlying object. The global `getGlobalScriptingContext`
+     * function will allow to retrieve the given object from within scripts.
+     * @param {Object} ctx - Object to store in global context
      */
     setGlobalScriptingContext(ctx) {
       // @todo - review
@@ -232,15 +226,16 @@ const pluginFactory = function(Plugin) {
 
     /**
      * Returns the list of all available scripts.
-     * @return {Array}
+     * @returns {Array}
      */
     getScriptNames() {
       return this._internalsState.get('nameList');
     }
 
     /**
-     * Conveniance method that return the underlying filesystem tree. Can be
+     * Convenience method that return the underlying filesystem tree. Can be
      * usefull to reuse components created for the filesystem (e.g. sc-filesystem)
+     * @returns {Object}
      */
     getTree() {
       return this._filesystem.getTree();
@@ -253,6 +248,7 @@ const pluginFactory = function(Plugin) {
      * @param {Function} callback - Callback function to execute
      * @param {boolean} [executeListener=false] - If true, execute the given
      *  callback immediately.
+     * @return {Function} Function that unregister the listener when executed.
      */
     onUpdate(callback, executeListener = false) {
       return this._internalsState.onUpdate(() => {
@@ -263,13 +259,20 @@ const pluginFactory = function(Plugin) {
     // accept both `dirname` and `{ dirname }` so it can be switched alongside
     // filesystem consistently
     async switch(dirname) {
-      implement();
+      throw new Error('not implemented');
 
       // delete all script states
       // reinit internals
       // switch filesystem plugin
     }
 
+    /**
+     * Create a new script. The returned promise resolves when all underlyings
+     * states, files and script instances are up-to-date.
+     * @param {string} name - Name of the script, will be used as the actual filename
+     * @param {string} [value=''] - Initial value of the script
+     * @return {Promise}
+     */
     async createScript(name, value = '') {
       name = sanitizeScriptName(name);
 
@@ -288,7 +291,11 @@ const pluginFactory = function(Plugin) {
     }
 
     /**
-     * Resolve when eveything is updated, i.e. script state, nameLists, etc.
+     * Update an existing script. The returned promise resolves when all underlyings
+     * states, files and script instances are up-to-date.
+     * @param {string} name - Name of the script
+     * @param {string} value - New value of the script
+     * @return {Promise}
      */
     async updateScript(name, value) {
       name = sanitizeScriptName(name);
@@ -308,7 +315,10 @@ const pluginFactory = function(Plugin) {
     }
 
     /**
-     * Resolve when eveything is updated, i.e. script state, nameLists, etc.
+     * Delete a script. The returned promise resolves when all underlyings
+     * states, files and script instances are up-to-date.
+     * @param {string} name - Name of the script
+     * @return {Promise}
      */
     async deleteScript(name) {
       name = sanitizeScriptName(name);
@@ -323,6 +333,11 @@ const pluginFactory = function(Plugin) {
       });
     }
 
+    /**
+     * Attach to a script.
+     * @param {string} name - Name of the script
+     * @return {Promise} Promise that resolves on a new Script instance.
+     */
     async attach(name) {
       name = sanitizeScriptName(name);
 
