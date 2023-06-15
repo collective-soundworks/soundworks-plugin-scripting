@@ -1,5 +1,5 @@
 import { isString } from '@ircam/sc-utils';
-import slugify from 'slugify';
+import normalizePath from 'normalize-path';
 
 export function formatErrors(errors) {
   const { text, location } = errors[0];
@@ -31,7 +31,7 @@ export function sanitizeScriptName(name) {
   }
 
   // don't go lower case as we may want to have class files, e.g. MyClass.js
-  name = slugify(name);
+  name = normalizePath(name);
   // @todo - if file extention is given, keep it untouched
   if (!name.endsWith('.js')) {
     return `${name}.js`;

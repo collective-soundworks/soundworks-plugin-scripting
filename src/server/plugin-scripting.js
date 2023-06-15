@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
-import { isString } from '@ircam/sc-utils';
+import { isString, isPlainObject } from '@ircam/sc-utils';
 import pluginFilesystem from '@soundworks/plugin-filesystem/server.js';
 import { build } from 'esbuild';
 
@@ -16,17 +16,23 @@ globalThis.getGlobalScriptingContext = function() {
 
 const pluginFactory = function(Plugin) {
   /**
-   * Server-side representation of the soundworks' scripting plugin
+   * Server-side representation of the soundworks' scripting plugin.
+   *
+   * Available options:
+   * - dirname {String} - directory in which the script files are located
    */
   class PluginScriptingServer extends Plugin {
     constructor(server, id, options) {
       super(server, id);
 
-      const defaults = {
+      this.options = Object.assign({
         dirname: null,
-      };
+      }, options);
 
-      this.options = Object.assign({}, defaults, options);
+      if (!isString(this.options.dirname) && this.options.dirname !== null) {
+        throw new Error(`[soundworks:PluginScripting] Invalid argument for method switch, "dirname" should be a string or null`);
+      }
+      // make sure dirname is null or string
 
       this._scriptStatesByName = new Map();
       this._internalsState = null;
@@ -202,12 +208,8 @@ const pluginFactory = function(Plugin) {
         }
       });
 
-      // @todo move to switch
-      if (this.options.dirname) {
-        await this._filesystem.switch({ dirname: this.options.dirname });
-        // init all states from current tree
-        await this._createScripts(this._filesystem.getTree());
-        await this._updateInternals();
+      if (this.options.dirname !== null) {
+        await this.switch(this.options.dirname);
       }
     }
 
@@ -226,7 +228,7 @@ const pluginFactory = function(Plugin) {
      * Returns the list of all available scripts.
      * @returns {Array}
      */
-    getScriptNames() {
+    getList() {
       return this._internalsState.get('nameList');
     }
 
@@ -250,18 +252,45 @@ const pluginFactory = function(Plugin) {
      */
     onUpdate(callback, executeListener = false) {
       return this._internalsState.onUpdate(() => {
-        callback(this.getScriptNames(), this.getTree())
+        callback(this.getList(), this.getTree())
       }, executeListener);
     }
 
-    // accept both `dirname` and `{ dirname }` so it can be switched alongside
-    // filesystem consistently
+    /**
+     * Switch the plugin to watch and use another directory
+     * @param {String|Object} dirname - Path to the new directory. As a convenience
+     *  to match the plugin filesystem API, an object containing the 'dirname' key
+     *  can also be passed
+     */
     async switch(dirname) {
-      throw new Error('not implemented');
+      // support switch({ dirname }) API to match filesystem API
+      if (isPlainObject(dirname)) {
+        if (!('dirname' in dirname)) {
+          throw new Error(`[soundworks:PluginScripting] Invalid argument for method switch, argument should contain a "dirname" key`);
+        }
 
-      // delete all script states
-      // reinit internals
-      // switch filesystem plugin
+        dirname = dirname.dirname;
+      }
+
+      if (!isString(dirname)) {
+        throw new Error(`[soundworks:PluginScripting] Invalid argument for method switch, "dirname" should be a string`);
+      }
+
+      for (let [name, state] of this._scriptStatesByName.entries()) {
+        await state.detach();
+      }
+
+      this._scriptStatesByName.clear();
+
+      this._internalsState.set({
+        nameList: [],
+        nameIdMap: [],
+      });
+
+      await this._filesystem.switch({ dirname });
+      // init all states from current tree
+      await this._createScripts(this._filesystem.getTree());
+      await this._updateInternals();
     }
 
     /**

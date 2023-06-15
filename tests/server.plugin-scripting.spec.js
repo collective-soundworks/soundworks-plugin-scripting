@@ -51,7 +51,7 @@ describe(`[server] PluginScripting`, () => {
       await server.stop();
     });
 
-    it.skip('should support options.dirname = null', async () => {
+    it('should support options.dirname = null', async () => {
       const server = new Server(config);
       server.pluginManager.register('scripting', pluginScriptingServer, {
         dirname: null
@@ -62,6 +62,40 @@ describe(`[server] PluginScripting`, () => {
     });
 
     it('should support options.dirname = string', async () => {
+      const server = new Server(config);
+      server.pluginManager.register('scripting', pluginScriptingServer, {
+        dirname: staticScripts
+      });
+
+      await server.start();
+      await server.stop();
+    });
+
+
+    it('should throw if options.dirname is neither a string or null', async () => {
+      const server = new Server(config);
+      server.pluginManager.register('scripting', pluginScriptingServer, {
+        dirname: 42
+      });
+
+      let errored = false;
+
+      try {
+        await server.start();
+      } catch (err) {
+        console.log(err.message);
+        errored = true;
+      }
+
+      if (!errored) {
+        assert.fail('should have thrown');
+      }
+    });
+
+  });
+
+  describe(`# [private] async plugin.start()`, () => {
+    it(`should be ready after server.init()`, async () => {
       const server = new Server(config);
       server.pluginManager.register('scripting', pluginScriptingServer, {
         dirname: staticScripts
@@ -81,17 +115,48 @@ describe(`[server] PluginScripting`, () => {
     });
   });
 
-  describe(`# [private] async plugin.start()`, () => {
-    it(`should be ready after server.init()`, () => {
-      const server = new Server(config);
-      server.pluginManager.register('scripting', pluginScriptingServer, {
-
-      });
-    });
-  });
-
   describe('# plugin.switch(dirname)', () => {
-    it.skip(`todo`, () => {});
+    it(`should switch properly`, async () => {
+      const server = new Server(config);
+      server.pluginManager.register('scripting', pluginScriptingServer);
+
+      await server.start();
+
+      const plugin = await server.pluginManager.get('scripting');
+
+      assert.equal(plugin._scriptStatesByName.size, 0);
+      assert.equal(plugin.getList().length, 0);
+
+      {
+        await plugin.switch(staticScripts);
+
+        const expected = [
+          'export-default.js',
+          'export-named.js',
+          'import-package.js',
+          'import-relative.js',
+          'scripting-context.js',
+          'utils/math.js'
+        ];
+
+        assert.deepEqual(plugin.getList(), expected);
+        assert.equal(plugin._scriptStatesByName.size, expected.length);
+      }
+
+      { // alternative API - { dirname }
+        const dirname = path.join(staticScripts, 'utils');
+        await plugin.switch({ dirname });
+
+        const expected = [
+          'math.js'
+        ];
+
+        assert.deepEqual(plugin.getList(), expected);
+        assert.equal(plugin._scriptStatesByName.size, expected.length);
+      }
+
+      await server.stop();
+    });
   });
 
   describe(`# plugin.createScript(name, value = '')`, () => {
@@ -168,11 +233,14 @@ describe(`[server] PluginScripting`, () => {
 
     it('should write the file with given value and update internals before fullfilling', async () => {
       const server = new Server(config);
-      server.pluginManager.register('scripting', pluginScriptingServer, { dirname: dynamicScripts });
+      server.pluginManager.register('scripting', pluginScriptingServer);
 
       await server.start();
 
+      // just make sure it works as expected after switch
       const plugin = await server.pluginManager.get('scripting');
+      await plugin.switch({ dirname: dynamicScripts });
+
       const scriptName = 'create-script.js';
       const content = `const a = 42;`;
       await plugin.createScript(scriptName, content);
@@ -181,7 +249,7 @@ describe(`[server] PluginScripting`, () => {
       const value = fs.readFileSync(path.join(dynamicScripts, scriptName)).toString();
       assert.equal(value, content);
       // internals should be up-to-date
-      const names = plugin.getScriptNames();
+      const names = plugin.getList();
       assert.equal(names.includes(scriptName), true);
       // script should be in the list
       assert.equal(plugin._scriptStatesByName.has(scriptName), true);
@@ -279,7 +347,7 @@ describe(`[server] PluginScripting`, () => {
       const value = fs.readFileSync(path.join(dynamicScripts, scriptName)).toString();
       assert.equal(value, content);
       // internals should be up-to-date
-      const names = plugin.getScriptNames();
+      const names = plugin.getList();
       assert.equal(names.includes(scriptName), true);
       // script should be in the list
       assert.equal(plugin._scriptStatesByName.has(scriptName), true);
@@ -351,7 +419,7 @@ describe(`[server] PluginScripting`, () => {
       const exists = fs.existsSync(path.join(dynamicScripts, scriptName));
       assert.equal(exists, false);
       // internals should be up-to-date
-      const names = plugin.getScriptNames();
+      const names = plugin.getList();
       assert.equal(names.includes(scriptName), false);
       // script should be in the list
       assert.equal(plugin._scriptStatesByName.has(scriptName), false);

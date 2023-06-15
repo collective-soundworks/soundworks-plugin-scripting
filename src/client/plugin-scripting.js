@@ -2,7 +2,7 @@ import { isString } from '@ircam/sc-utils';
 import pluginFilesystem from '@soundworks/plugin-filesystem/client.js';
 
 import { sanitizeScriptName } from '../common/utils.js';
-import Script from '../common/Script';
+import Script from '../common/Script.js';
 
 const scriptStoreSymbol = Symbol('sw:plugin:scripting');
 
@@ -10,19 +10,29 @@ globalThis.getGlobalScriptingContext = function() {
   return globalThis[scriptStoreSymbol];
 }
 
+// @note - most of this code could be factorized with server-side
+
 const pluginFactory = function(Plugin) {
   class PluginScriptingClient extends Plugin {
-    constructor(client, id, options) {
+    constructor(client, id, options = {}) {
       super(client, id);
 
-      const defaults = {};
-
-      this.options = this.configure(defaults, options);
+      this.options = Object.assign({}, options);
 
       this._internalsState = null;
       this._filesystem = null;
 
       this.client.pluginManager.register(`sw:plugin:${this.id}:filesystem`, pluginFilesystem);
+    }
+
+    /** @private */
+    _resolveOnTriggerScriptName(name, resolve) {
+      const unsubscribe = this._internalsState.onUpdate(updates => {
+        if ('triggerScriptName' in updates && updates.triggerScriptName === name) {
+          unsubscribe();
+          resolve();
+        }
+      });
     }
 
     /** @private */
@@ -46,7 +56,7 @@ const pluginFactory = function(Plugin) {
      * Returns the list of all available scripts.
      * @returns {Array}
      */
-    getScriptNames() {
+    getList() {
       return this._internalsState.get('nameList');
     }
 
@@ -59,20 +69,92 @@ const pluginFactory = function(Plugin) {
       return this._filesystem.getTree();
     }
 
+    /**
+     * Create a new script. The returned promise resolves when all underlyings
+     * states, files and script instances are up-to-date.
+     * @param {string} name - Name of the script, will be used as the actual filename
+     * @param {string} [value=''] - Initial value of the script
+     * @return {Promise}
+     */
     async createScript(name, value = '') {
+      name = sanitizeScriptName(name);
 
+      if (this.getScriptNames.includes(name)) {
+        throw new Error(`[soundworks:PluginScripting] Cannot create script "${name}", script already exists`);
+      }
+
+      if (!isString(value)) {
+        throw new Error(`[soundworks:PluginScripting] Invalid value for script "${name}", should be a string`);
+      }
+
+      return new Promise(async (resolve, reject) => {
+        this._resolveOnTriggerScriptName(name, resolve);
+        await this._filesystem.writeFile(name, value);
+      });
     }
 
+    /**
+     * Update an existing script. The returned promise resolves when all underlyings
+     * states, files and script instances are up-to-date.
+     * @param {string} name - Name of the script
+     * @param {string} value - New value of the script
+     * @return {Promise}
+     */
     async updateScript(name, value) {
+      name = sanitizeScriptName(name);
 
+      if (!this.getScriptNames.includes(name)) {
+        throw new Error(`[soundworks:PluginScripting] Cannot update script "${name}", script does not exists`);
+      }
+
+      if (!isString(value)) {
+        throw new Error(`[soundworks:PluginScripting] Invalid value for script "${name}", should be a string`);
+      }
+
+      return new Promise(async (resolve, reject) => {
+        this._resolveOnTriggerScriptName(name, resolve);
+        await this._filesystem.writeFile(name, value);
+      });
     }
 
+    /**
+     * Delete a script. The returned promise resolves when all underlyings
+     * states, files and script instances are up-to-date.
+     * @param {string} name - Name of the script
+     * @return {Promise}
+     */
     async deleteScript(name) {
+      name = sanitizeScriptName(name);
 
+      if (!this.getScriptNames.includes(name)) {
+        throw new Error(`[soundworks:PluginScripting] Cannot delete script "${name}", script does not exists`);
+      }
+
+      return new Promise(async (resolve, reject) => {
+        this._resolveOnTriggerScriptName(name, resolve);
+        await this._filesystem.rm(name);
+      });
     }
 
+    /**
+     * Attach to a script.
+     * @param {string} name - Name of the script
+     * @return {Promise} Promise that resolves on a new Script instance.
+     */
     async attach(name) {
+      name = sanitizeScriptName(name);
 
+      const nameIdMap = this._internalsState.get('nameIdMap');
+      const entry = nameIdMap.find(e => e.name === name);
+
+      if (entry) {
+        const state = await this.client.stateManager.attach(`sw:plugin:${this.id}:script`, entry.id);
+        const script = new Script(name, state, this);
+
+        return Promise.resolve(script);
+      } else {
+        throw new Error(`[soundworks:PluginScripting] Cannot attach script "${name}", script does not exists`);
+      }
     }
   }
 

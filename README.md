@@ -45,10 +45,14 @@ A working example can be found in the [https://github.com/collective-soundworks/
 <dt><a href="#Script">Script</a></dt>
 <dd><p>A Script instance represent a script that can be distributed and modified
 at runtime. It is retrieved by a <code>@soundworks/plugin-scripting</code> plugin when
-it&#39;s <code>attach</code> method is called</p>
+it&#39;s <code>attach</code> method is called.</p>
 </dd>
 <dt><a href="#PluginScriptingServer">PluginScriptingServer</a></dt>
-<dd><p>Server-side representation of the soundworks&#39; scripting plugin</p>
+<dd><p>Server-side representation of the soundworks&#39; scripting plugin.</p>
+<p>Available options:</p>
+<ul>
+<li>dirname {String} - directory in which the script files are located</li>
+</ul>
 </dd>
 </dl>
 
@@ -57,7 +61,7 @@ it&#39;s <code>attach</code> method is called</p>
 ### Script
 A Script instance represent a script that can be distributed and modified
 at runtime. It is retrieved by a `@soundworks/plugin-scripting` plugin when
-it's `attach` method is called
+it's `attach` method is called.
 
 **Kind**: global class  
 
@@ -150,7 +154,10 @@ using the current script without deleting it, call detach instead
 <a name="PluginScriptingServer"></a>
 
 ### PluginScriptingServer
-Server-side representation of the soundworks' scripting plugin
+Server-side representation of the soundworks' scripting plugin.
+
+Available options:
+- dirname {String} - directory in which the script files are located
 
 **Kind**: global class  
 

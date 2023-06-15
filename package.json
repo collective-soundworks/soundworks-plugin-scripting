@@ -28,7 +28,7 @@
     "@ircam/sc-utils": "^1.0.1",
     "@soundworks/plugin-filesystem": "^2.0.0-alpha.1",
     "esbuild": "^0.18.2",
-    "slugify": "^1.4.5"
+    "normalize-path": "^3.0.0"
   },
   "devDependencies": {
     "@soundworks/core": "^4.0.0-alpha.6",
