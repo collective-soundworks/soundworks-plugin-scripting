@@ -106,8 +106,8 @@ describe(`[server] PluginScripting`, () => {
       const plugin = await server.pluginManager.get('scripting');
       // internals are up to date
       assert.isAbove(plugin._scriptStatesByName.size, 0);
-      assert.isAbove(plugin._internalsState.get('nameList').length, 0);
-      assert.isAbove(plugin._internalsState.get('nameIdMap').length, 0);
+      assert.isAbove(plugin._internalState.get('nameList').length, 0);
+      assert.isAbove(plugin._internalState.get('nameIdMap').length, 0);
 
       // need to clean chokidat listeners
       await server.start();

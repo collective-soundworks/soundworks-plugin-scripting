@@ -7,7 +7,6 @@ import { assert } from 'chai';
 
 import pluginScriptingClient from '../src/client/plugin-scripting.js';
 import pluginScriptingServer from '../src/server/plugin-scripting.js';
-// import Script from '../src/common/script.js';
 
 const staticScripts = path.join(process.cwd(), 'tests', 'static-scripts');
 const dynamicScripts = path.join(process.cwd(), 'tests', 'dynamic-scripts');
@@ -42,11 +41,11 @@ describe(`[server] PluginScripting`, () => {
   });
 
   // keep repo clean
-  after(() => {
-    if (fs.existsSync(dynamicScripts)) {
-      fs.rmSync(dynamicScripts, { recursive: true });
-    }
-  });
+  // after(() => {
+  //   if (fs.existsSync(dynamicScripts)) {
+  //     fs.rmSync(dynamicScripts, { recursive: true });
+  //   }
+  // });
 
   beforeEach(async () => {
     server = new Server(config);
@@ -60,7 +59,7 @@ describe(`[server] PluginScripting`, () => {
   });
 
   describe(`# [private] async plugin.start()`, () => {
-    it.only(`should be ready after client.init()`, async () => {
+    it(`should be ready after client.init()`, async () => {
       await serverPlugin.switch(staticScripts);
 
       const client = new Client(config);
@@ -70,8 +69,8 @@ describe(`[server] PluginScripting`, () => {
 
       const plugin = await client.pluginManager.get('scripting');
       // internals are up to date
-      assert.isAbove(plugin._internalsState.get('nameList').length, 0);
-      assert.isAbove(plugin._internalsState.get('nameIdMap').length, 0);
+      assert.isAbove(plugin._internalState.get('nameList').length, 0);
+      assert.isAbove(plugin._internalState.get('nameIdMap').length, 0);
 
       // need to clean chokidat listeners
       await client.start();
@@ -81,8 +80,10 @@ describe(`[server] PluginScripting`, () => {
 
   describe(`# plugin.createScript(name, value = '')`, () => {
     it('should throw if script name is not a string', async () => {
-      const client = new Server(config);
-      client.pluginManager.register('scripting', pluginScriptingServer, { dirname: dynamicScripts });
+      await serverPlugin.switch(dynamicScripts);
+
+      const client = new Client(config);
+      client.pluginManager.register('scripting', pluginScriptingClient);
 
       await client.start();
 
@@ -104,8 +105,10 @@ describe(`[server] PluginScripting`, () => {
     });
 
     it('should throw if value is not a string', async () => {
-      const client = new Server(config);
-      client.pluginManager.register('scripting', pluginScriptingServer, { dirname: dynamicScripts });
+      await serverPlugin.switch(dynamicScripts);
+
+      const client = new Client(config);
+      client.pluginManager.register('scripting', pluginScriptingClient);
 
       await client.start();
 
@@ -128,9 +131,10 @@ describe(`[server] PluginScripting`, () => {
 
     it('should throw if script already exists', async () => {
       fs.writeFileSync(path.join(dynamicScripts, 'already-exists.js'), 'const a = 42;');
+      await serverPlugin.switch(dynamicScripts);
 
-      const client = new Server(config);
-      client.pluginManager.register('scripting', pluginScriptingServer, { dirname: dynamicScripts });
+      const client = new Client(config);
+      client.pluginManager.register('scripting', pluginScriptingClient, { dirname: dynamicScripts });
 
       await client.start();
 
@@ -152,8 +156,10 @@ describe(`[server] PluginScripting`, () => {
     });
 
     it('should write the file with given value and update internals before fullfilling', async () => {
-      const client = new Server(config);
-      client.pluginManager.register('scripting', pluginScriptingServer, { dirname: dynamicScripts });
+      await serverPlugin.switch({ dirname: dynamicScripts });
+
+      const client = new Client(config);
+      client.pluginManager.register('scripting', pluginScriptingClient);
 
       await client.start();
 
@@ -166,10 +172,7 @@ describe(`[server] PluginScripting`, () => {
       const value = fs.readFileSync(path.join(dynamicScripts, scriptName)).toString();
       assert.equal(value, content);
       // internals should be up-to-date
-      const names = plugin.getScriptNames();
-      assert.equal(names.includes(scriptName), true);
-      // script should be in the list
-      assert.equal(plugin._scriptStatesByName.has(scriptName), true);
+      assert.equal(plugin.getList().includes(scriptName), true);
 
       await client.stop();
     });
@@ -177,8 +180,10 @@ describe(`[server] PluginScripting`, () => {
 
   describe('# plugin.updateScript(name, value)', () => {
     it('should throw if script name is not a string', async () => {
-      const client = new Server(config);
-      client.pluginManager.register('scripting', pluginScriptingServer, { dirname: dynamicScripts });
+      await serverPlugin.switch({ dirname: dynamicScripts });
+
+      const client = new Client(config);
+      client.pluginManager.register('scripting', pluginScriptingClient);
 
       await client.start();
 
@@ -201,9 +206,10 @@ describe(`[server] PluginScripting`, () => {
 
     it('should throw if value is not a string', async () => {
       fs.writeFileSync(path.join(dynamicScripts, 'update-script.js'), 'const a = 42;');
+      await serverPlugin.switch({ dirname: dynamicScripts });
 
-      const client = new Server(config);
-      client.pluginManager.register('scripting', pluginScriptingServer, { dirname: dynamicScripts });
+      const client = new Client(config);
+      client.pluginManager.register('scripting', pluginScriptingClient);
 
       await client.start();
 
@@ -225,8 +231,10 @@ describe(`[server] PluginScripting`, () => {
     });
 
     it('should throw if script does not exists', async () => {
-      const client = new Server(config);
-      client.pluginManager.register('scripting', pluginScriptingServer, { dirname: dynamicScripts });
+      await serverPlugin.switch({ dirname: dynamicScripts });
+
+      const client = new Client(config);
+      client.pluginManager.register('scripting', pluginScriptingClient);
 
       await client.start();
 
@@ -250,9 +258,10 @@ describe(`[server] PluginScripting`, () => {
     it('should update the file with given value and update internals before fullfilling', async () => {
       const scriptName = 'update-script.js';
       fs.writeFileSync(path.join(dynamicScripts, scriptName), 'const a = 42;');
+      await serverPlugin.switch({ dirname: dynamicScripts });
 
-      const client = new Server(config);
-      client.pluginManager.register('scripting', pluginScriptingServer, { dirname: dynamicScripts });
+      const client = new Client(config);
+      client.pluginManager.register('scripting', pluginScriptingClient);
 
       await client.start();
 
@@ -264,10 +273,7 @@ describe(`[server] PluginScripting`, () => {
       const value = fs.readFileSync(path.join(dynamicScripts, scriptName)).toString();
       assert.equal(value, content);
       // internals should be up-to-date
-      const names = plugin.getScriptNames();
-      assert.equal(names.includes(scriptName), true);
-      // script should be in the list
-      assert.equal(plugin._scriptStatesByName.has(scriptName), true);
+      assert.equal(plugin.getList().includes(scriptName), true);
 
       await client.stop();
     });
@@ -275,8 +281,10 @@ describe(`[server] PluginScripting`, () => {
 
   describe('# plugin.deleteScript(name)', () => {
     it('should throw if script name is not a string', async () => {
-      const client = new Server(config);
-      client.pluginManager.register('scripting', pluginScriptingServer, { dirname: dynamicScripts });
+      await serverPlugin.switch({ dirname: dynamicScripts });
+
+      const client = new Client(config);
+      client.pluginManager.register('scripting', pluginScriptingClient);
 
       await client.start();
 
@@ -298,8 +306,10 @@ describe(`[server] PluginScripting`, () => {
     });
 
     it('should throw if script does not exists', async () => {
-      const client = new Server(config);
-      client.pluginManager.register('scripting', pluginScriptingServer, { dirname: dynamicScripts });
+      await serverPlugin.switch({ dirname: dynamicScripts });
+
+      const client = new Client(config);
+      client.pluginManager.register('scripting', pluginScriptingClient);
 
       await client.start();
 
@@ -324,8 +334,10 @@ describe(`[server] PluginScripting`, () => {
       const scriptName = 'update-script.js';
       fs.writeFileSync(path.join(dynamicScripts, scriptName), 'const a = 42;');
 
-      const client = new Server(config);
-      client.pluginManager.register('scripting', pluginScriptingServer, { dirname: dynamicScripts });
+      await serverPlugin.switch({ dirname: dynamicScripts });
+
+      const client = new Client(config);
+      client.pluginManager.register('scripting', pluginScriptingClient);
 
       await client.start();
 
@@ -336,10 +348,7 @@ describe(`[server] PluginScripting`, () => {
       const exists = fs.existsSync(path.join(dynamicScripts, scriptName));
       assert.equal(exists, false);
       // internals should be up-to-date
-      const names = plugin.getScriptNames();
-      assert.equal(names.includes(scriptName), false);
-      // script should be in the list
-      assert.equal(plugin._scriptStatesByName.has(scriptName), false);
+      assert.equal(plugin.getList().includes(scriptName), false);
 
       await client.stop();
     });
@@ -347,8 +356,10 @@ describe(`[server] PluginScripting`, () => {
 
   describe('# plugin.attach(name) -> Script', () => {
     it('should throw if script name is not a string', async () => {
-      const client = new Server(config);
-      client.pluginManager.register('scripting', pluginScriptingServer, { dirname: staticScripts });
+      await serverPlugin.switch({ dirname: staticScripts });
+
+      const client = new Client(config);
+      client.pluginManager.register('scripting', pluginScriptingClient);
 
       await client.start();
 
@@ -370,8 +381,10 @@ describe(`[server] PluginScripting`, () => {
     });
 
     it('should throw if script does not exists', async () => {
-      const client = new Server(config);
-      client.pluginManager.register('scripting', pluginScriptingServer, { dirname: staticScripts });
+      await serverPlugin.switch({ dirname: staticScripts });
+
+      const client = new Client(config);
+      client.pluginManager.register('scripting', pluginScriptingClient);
 
       await client.start();
 
@@ -393,8 +406,10 @@ describe(`[server] PluginScripting`, () => {
     });
 
     it('should return a script instance', async () => {
-      const client = new Server(config);
-      client.pluginManager.register('scripting', pluginScriptingServer, { dirname: staticScripts });
+      await serverPlugin.switch({ dirname: staticScripts });
+
+      const client = new Client(config);
+      client.pluginManager.register('scripting', pluginScriptingClient);
       await client.start();
 
       const plugin = await client.pluginManager.get('scripting');
@@ -411,8 +426,8 @@ describe(`[server] PluginScripting`, () => {
 
   describe('# plugin.setScriptingContext(ctx) | globalThis.getScriptingContext()', () => {
     it(`should update global context`, async () => {
-      const client = new Server(config);
-      client.pluginManager.register('scripting', pluginScriptingServer);
+      const client = new Client(config);
+      client.pluginManager.register('scripting', pluginScriptingClient);
       await client.start();
 
       const plugin = await client.pluginManager.get('scripting');
@@ -423,7 +438,7 @@ describe(`[server] PluginScripting`, () => {
       };
 
       plugin.setGlobalScriptingContext(ctx);
-      const res = getGlobalScriptingContext();
+      const res = globalThis.getGlobalScriptingContext();
 
       assert.deepEqual(res, ctx);
 
@@ -437,8 +452,10 @@ describe(`[server] PluginScripting`, () => {
 
   describe('# sanitizeName(scriptName)', () => {
     it('should allow to work without explicit extension', async () => {
-      const client = new Server(config);
-      client.pluginManager.register('scripting', pluginScriptingServer, { dirname: dynamicScripts });
+      await serverPlugin.switch({ dirname: dynamicScripts });
+
+      const client = new Client(config);
+      client.pluginManager.register('scripting', pluginScriptingClient);
       await client.start();
 
       const plugin = await client.pluginManager.get('scripting');

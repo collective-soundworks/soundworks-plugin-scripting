@@ -8,10 +8,12 @@ import { build } from 'esbuild';
 import { formatErrors, sanitizeScriptName } from '../common/utils.js';
 import Script from '../common/Script.js';
 
-const scriptStoreSymbol = Symbol('sw:plugin:scripting');
+const scriptStoreSymbol = Symbol.for('sw:plugin:scripting');
 
-globalThis.getGlobalScriptingContext = function() {
-  return globalThis[scriptStoreSymbol];
+if (!globalThis.getGlobalScriptingContext) {
+  globalThis.getGlobalScriptingContext = function() {
+    return globalThis[scriptStoreSymbol];
+  }
 }
 
 const pluginFactory = function(Plugin) {
@@ -30,10 +32,11 @@ const pluginFactory = function(Plugin) {
       }, options);
 
       this._scriptStatesByName = new Map();
-      this._internalsState = null;
+      this._internalState = null;
       this._filesystem = null;
 
       this.server.pluginManager.register(`sw:plugin:${this.id}:filesystem`, pluginFilesystem);
+      this.server.pluginManager.addDependency(this.id, `sw:plugin:${this.id}:filesystem`);
 
       // states
       const internalsSchema = {
@@ -89,9 +92,9 @@ const pluginFactory = function(Plugin) {
       }
 
       if (triggerScriptName === null) {
-        await this._internalsState.set({ nameList, nameIdMap });
+        await this._internalState.set({ nameList, nameIdMap });
       } else {
-        await this._internalsState.set({ nameList, nameIdMap, triggerScriptName });
+        await this._internalState.set({ nameList, nameIdMap, triggerScriptName });
       }
     }
 
@@ -151,7 +154,7 @@ const pluginFactory = function(Plugin) {
 
     /** @private */
     _resolveOnTriggerScriptName(name, resolve) {
-      const unsubscribe = this._internalsState.onUpdate(updates => {
+      const unsubscribe = this._internalState.onUpdate(updates => {
         if ('triggerScriptName' in updates && updates.triggerScriptName === name) {
           unsubscribe();
           resolve();
@@ -161,7 +164,7 @@ const pluginFactory = function(Plugin) {
 
     /** @private */
     async start() {
-      this._internalsState = await this.server.stateManager.create(`sw:plugin:${this.id}:internals`);
+      this._internalState = await this.server.stateManager.create(`sw:plugin:${this.id}:internals`);
       // use the pirvate `unsafeGet` to bypass the server init check
       this._filesystem = await this.server.pluginManager.unsafeGet(`sw:plugin:${this.id}:filesystem`);
 
@@ -222,7 +225,7 @@ const pluginFactory = function(Plugin) {
      * @returns {Array}
      */
     getList() {
-      return this._internalsState.get('nameList');
+      return this._internalState.get('nameList');
     }
 
     /**
@@ -244,7 +247,7 @@ const pluginFactory = function(Plugin) {
      * @return {Function} Function that unregister the listener when executed.
      */
     onUpdate(callback, executeListener = false) {
-      return this._internalsState.onUpdate(() => {
+      return this._internalState.onUpdate(() => {
         callback(this.getList(), this.getTree())
       }, executeListener);
     }
@@ -277,7 +280,7 @@ const pluginFactory = function(Plugin) {
 
       this._scriptStatesByName.clear();
 
-      this._internalsState.set({
+      this._internalState.set({
         nameList: [],
         nameIdMap: [],
       });
@@ -311,6 +314,7 @@ const pluginFactory = function(Plugin) {
         throw new Error(`[soundworks:PluginScripting] Invalid value for script "${name}", should be a string`);
       }
 
+      // @todo - propagate filesystem errors (dirname is null, etc.)
       return new Promise(async (resolve, reject) => {
         this._resolveOnTriggerScriptName(name, resolve);
         await this._filesystem.writeFile(name, value);
@@ -335,6 +339,7 @@ const pluginFactory = function(Plugin) {
         throw new Error(`[soundworks:PluginScripting] Invalid value for script "${name}", should be a string`);
       }
 
+      // @todo - propagate filesystem errors (dirname is null, etc.)
       return new Promise(async (resolve, reject) => {
         this._resolveOnTriggerScriptName(name, resolve);
         await this._filesystem.writeFile(name, value);
@@ -354,6 +359,7 @@ const pluginFactory = function(Plugin) {
         throw new Error(`[soundworks:PluginScripting] Cannot delete script "${name}", script does not exists`);
       }
 
+      // @todo - propagate filesystem errors (dirname is null, etc.)
       return new Promise(async (resolve, reject) => {
         this._resolveOnTriggerScriptName(name, resolve);
         await this._filesystem.rm(name);
@@ -368,7 +374,7 @@ const pluginFactory = function(Plugin) {
     async attach(name) {
       name = sanitizeScriptName(name);
 
-      const nameIdMap = this._internalsState.get('nameIdMap');
+      const nameIdMap = this._internalState.get('nameIdMap');
       const entry = nameIdMap.find(e => e.name === name);
 
       if (entry) {

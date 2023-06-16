@@ -24,3 +24,5 @@
     sw-plugin-scripting.js
 
 --> check if it works for other plugins as well
+
+- [ ] propagate errors from filesystem

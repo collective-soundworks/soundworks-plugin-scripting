@@ -109,9 +109,9 @@ describe(`[common] Script`, () => {
       const script = await plugin.attach('scripting-context');
       const { forwardContext } = await script.import();
 
-      assert.deepEqual(forwardContext(), ctx);
-
       await server.stop();
+
+      assert.deepEqual(forwardContext(), ctx);
     });
   });
 });
