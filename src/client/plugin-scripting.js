@@ -15,6 +15,9 @@ if (!globalThis.getGlobalScriptingContext) {
 // @note - most of this code could be factorized with server-side
 
 const pluginFactory = function(Plugin) {
+  /**
+   * Client-side representation of the soundworks' scripting plugin.
+   */
   class PluginScriptingClient extends Plugin {
     constructor(client, id, options = {}) {
       super(client, id);

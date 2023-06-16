@@ -13,6 +13,7 @@
 - [Usage](#usage)
 - [API](#api)
   * [Classes](#classes)
+  * [PluginScriptingClient](#pluginscriptingclient)
   * [Script](#script)
   * [PluginScriptingServer](#pluginscriptingserver)
 - [Security concerns](#security-concerns)
@@ -42,6 +43,9 @@ A working example can be found in the [https://github.com/collective-soundworks/
 ### Classes
 
 <dl>
+<dt><a href="#PluginScriptingClient">PluginScriptingClient</a></dt>
+<dd><p>Client-side representation of the soundworks&#39; scripting plugin.</p>
+</dd>
 <dt><a href="#Script">Script</a></dt>
 <dd><p>A Script instance represent a script that can be distributed and modified
 at runtime. It is retrieved by a <code>@soundworks/plugin-scripting</code> plugin when
@@ -55,6 +59,99 @@ it&#39;s <code>attach</code> method is called.</p>
 </ul>
 </dd>
 </dl>
+
+<a name="PluginScriptingClient"></a>
+
+### PluginScriptingClient
+Client-side representation of the soundworks' scripting plugin.
+
+**Kind**: global class  
+
+* [PluginScriptingClient](#PluginScriptingClient)
+    * [.setGlobalScriptingContext(ctx)](#PluginScriptingClient+setGlobalScriptingContext)
+    * [.getList()](#PluginScriptingClient+getList) ⇒ <code>Array</code>
+    * [.getTree()](#PluginScriptingClient+getTree) ⇒ <code>Object</code>
+    * [.createScript(name, [value])](#PluginScriptingClient+createScript) ⇒ <code>Promise</code>
+    * [.updateScript(name, value)](#PluginScriptingClient+updateScript) ⇒ <code>Promise</code>
+    * [.deleteScript(name)](#PluginScriptingClient+deleteScript) ⇒ <code>Promise</code>
+    * [.attach(name)](#PluginScriptingClient+attach) ⇒ <code>Promise</code>
+
+<a name="PluginScriptingClient+setGlobalScriptingContext"></a>
+
+#### pluginScriptingClient.setGlobalScriptingContext(ctx)
+Registers a global context object to be used in scripts. Note that the
+context is store globally, so several scripting plugins running in parallel
+will share the same underlying object. The global `getGlobalScriptingContext`
+function will allow to retrieve the given object from within scripts.
+
+**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| ctx | <code>Object</code> | Object to store in global context |
+
+<a name="PluginScriptingClient+getList"></a>
+
+#### pluginScriptingClient.getList() ⇒ <code>Array</code>
+Returns the list of all available scripts.
+
+**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)  
+<a name="PluginScriptingClient+getTree"></a>
+
+#### pluginScriptingClient.getTree() ⇒ <code>Object</code>
+Convenience method that return the underlying filesystem tree. Can be
+usefull to reuse components created for the filesystem (e.g. sc-filesystem)
+
+**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)  
+<a name="PluginScriptingClient+createScript"></a>
+
+#### pluginScriptingClient.createScript(name, [value]) ⇒ <code>Promise</code>
+Create a new script. The returned promise resolves when all underlyings
+states, files and script instances are up-to-date.
+
+**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| name | <code>string</code> |  | Name of the script, will be used as the actual filename |
+| [value] | <code>string</code> | <code>&quot;&#x27;&#x27;&quot;</code> | Initial value of the script |
+
+<a name="PluginScriptingClient+updateScript"></a>
+
+#### pluginScriptingClient.updateScript(name, value) ⇒ <code>Promise</code>
+Update an existing script. The returned promise resolves when all underlyings
+states, files and script instances are up-to-date.
+
+**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| name | <code>string</code> | Name of the script |
+| value | <code>string</code> | New value of the script |
+
+<a name="PluginScriptingClient+deleteScript"></a>
+
+#### pluginScriptingClient.deleteScript(name) ⇒ <code>Promise</code>
+Delete a script. The returned promise resolves when all underlyings
+states, files and script instances are up-to-date.
+
+**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| name | <code>string</code> | Name of the script |
+
+<a name="PluginScriptingClient+attach"></a>
+
+#### pluginScriptingClient.attach(name) ⇒ <code>Promise</code>
+Attach to a script.
+
+**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)  
+**Returns**: <code>Promise</code> - Promise that resolves on a new Script instance.  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| name | <code>string</code> | Name of the script |
 
 <a name="Script"></a>
 
@@ -163,9 +260,10 @@ Available options:
 
 * [PluginScriptingServer](#PluginScriptingServer)
     * [.setGlobalScriptingContext(ctx)](#PluginScriptingServer+setGlobalScriptingContext)
-    * [.getScriptNames()](#PluginScriptingServer+getScriptNames) ⇒ <code>Array</code>
+    * [.getList()](#PluginScriptingServer+getList) ⇒ <code>Array</code>
     * [.getTree()](#PluginScriptingServer+getTree) ⇒ <code>Object</code>
     * [.onUpdate(callback, [executeListener])](#PluginScriptingServer+onUpdate) ⇒ <code>function</code>
+    * [.switch(dirname)](#PluginScriptingServer+switch)
     * [.createScript(name, [value])](#PluginScriptingServer+createScript) ⇒ <code>Promise</code>
     * [.updateScript(name, value)](#PluginScriptingServer+updateScript) ⇒ <code>Promise</code>
     * [.deleteScript(name)](#PluginScriptingServer+deleteScript) ⇒ <code>Promise</code>
@@ -185,9 +283,9 @@ function will allow to retrieve the given object from within scripts.
 | --- | --- | --- |
 | ctx | <code>Object</code> | Object to store in global context |
 
-<a name="PluginScriptingServer+getScriptNames"></a>
+<a name="PluginScriptingServer+getList"></a>
 
-#### pluginScriptingServer.getScriptNames() ⇒ <code>Array</code>
+#### pluginScriptingServer.getList() ⇒ <code>Array</code>
 Returns the list of all available scripts.
 
 **Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)  
@@ -212,6 +310,17 @@ file tree.
 | --- | --- | --- | --- |
 | callback | <code>function</code> |  | Callback function to execute |
 | [executeListener] | <code>boolean</code> | <code>false</code> | If true, execute the given  callback immediately. |
+
+<a name="PluginScriptingServer+switch"></a>
+
+#### pluginScriptingServer.switch(dirname)
+Switch the plugin to watch and use another directory
+
+**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| dirname | <code>String</code> \| <code>Object</code> | Path to the new directory. As a convenience  to match the plugin filesystem API, an object containing the 'dirname' key  can also be passed |
 
 <a name="PluginScriptingServer+createScript"></a>
 
