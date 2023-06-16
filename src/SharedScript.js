@@ -1,11 +1,13 @@
 import { isBrowser } from '@ircam/sc-utils';
 
 /**
- * A Script instance represent a script that can be distributed and modified
- * at runtime. It is retrieved by a `@soundworks/plugin-scripting` plugin when
- * it's `attach` method is called.
+ * A SharedScript can be distributed amongst different clients and modified
+ * at runtime. The script source is stored directly in the filestem, see
+ * `dirname` option of the server-side plugin.
+ * A Shared script cannot be instatiated manually, it is retrieved by calling
+ * the client's or  server `PluScritping.attach` method.
  */
-class Script {
+class SharedScript {
   constructor(name, scriptState, plugin) {
     this.name = name;
 
@@ -117,4 +119,4 @@ class Script {
   }
 }
 
-export default Script;
+export default SharedScript;

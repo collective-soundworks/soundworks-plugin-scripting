@@ -8,8 +8,8 @@
   "license": "BSD-3-Clause",
   "type": "module",
   "exports": {
-    "./client.js": "./src/client/plugin-scripting.js",
-    "./server.js": "./src/server/plugin-scripting.js"
+    "./client.js": "./src/PluginScriptingClient.js",
+    "./server.js": "./src/PluginScriptingServer.js"
   },
   "scripts": {
     "api": "jsdoc-to-readme --src src/**/*.js",

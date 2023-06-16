@@ -4,7 +4,7 @@ import path from 'node:path';
 import { Server } from '@soundworks/core/server.js';
 import { assert } from 'chai';
 
-import pluginScriptingServer from '../src/server/plugin-scripting.js';
+import pluginScriptingServer from '../src/PluginScriptingServer.js';
 
 const dirname = path.join(process.cwd(), 'tests', 'static-scripts');
 

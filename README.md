@@ -14,8 +14,8 @@
 - [API](#api)
   * [Classes](#classes)
   * [PluginScriptingClient](#pluginscriptingclient)
-  * [Script](#script)
   * [PluginScriptingServer](#pluginscriptingserver)
+  * [SharedScript](#sharedscript)
 - [Security concerns](#security-concerns)
 - [Credits](#credits)
 - [License](#license)
@@ -46,17 +46,19 @@ A working example can be found in the [https://github.com/collective-soundworks/
 <dt><a href="#PluginScriptingClient">PluginScriptingClient</a></dt>
 <dd><p>Client-side representation of the soundworks&#39; scripting plugin.</p>
 </dd>
-<dt><a href="#Script">Script</a></dt>
-<dd><p>A Script instance represent a script that can be distributed and modified
-at runtime. It is retrieved by a <code>@soundworks/plugin-scripting</code> plugin when
-it&#39;s <code>attach</code> method is called.</p>
-</dd>
 <dt><a href="#PluginScriptingServer">PluginScriptingServer</a></dt>
 <dd><p>Server-side representation of the soundworks&#39; scripting plugin.</p>
 <p>Available options:</p>
 <ul>
 <li>dirname {String} - directory in which the script files are located</li>
 </ul>
+</dd>
+<dt><a href="#SharedScript">SharedScript</a></dt>
+<dd><p>A SharedScript can be distributed amongst different clients and modified
+at runtime. The script source is stored directly in the filestem, see
+<code>dirname</code> option of the server-side plugin.
+A Shared script cannot be instatiated manually, it is retrieved by calling
+the client&#39;s or  server <code>PluScritping.attach</code> method.</p>
 </dd>
 </dl>
 
@@ -153,101 +155,6 @@ Attach to a script.
 | --- | --- | --- |
 | name | <code>string</code> | Name of the script |
 
-<a name="Script"></a>
-
-### Script
-A Script instance represent a script that can be distributed and modified
-at runtime. It is retrieved by a `@soundworks/plugin-scripting` plugin when
-it's `attach` method is called.
-
-**Kind**: global class  
-
-* [Script](#Script)
-    * [.source](#Script+source) : <code>string</code>
-    * [.error](#Script+error) : <code>string</code>
-    * [.transpiled](#Script+transpiled) : <code>string</code>
-    * [.import()](#Script+import) ⇒ <code>Promise</code>
-    * [.detach()](#Script+detach)
-    * [.onUpdate(callback, [executeListener])](#Script+onUpdate) ⇒ <code>function</code>
-    * [.onDetach(callback)](#Script+onDetach)
-    * [.update(value)](#Script+update)
-    * [.delete()](#Script+delete)
-
-<a name="Script+source"></a>
-
-#### script.source : <code>string</code>
-**Kind**: instance property of [<code>Script</code>](#Script)  
-**Read only**: true  
-<a name="Script+error"></a>
-
-#### script.error : <code>string</code>
-**Kind**: instance property of [<code>Script</code>](#Script)  
-**Read only**: true  
-<a name="Script+transpiled"></a>
-
-#### script.transpiled : <code>string</code>
-**Kind**: instance property of [<code>Script</code>](#Script)  
-**Read only**: true  
-<a name="Script+import"></a>
-
-#### script.import() ⇒ <code>Promise</code>
-Dynamically import the transpiled module.
-[https://caniuse.com/?search=import()](https://caniuse.com/?search=import())
-
-**Kind**: instance method of [<code>Script</code>](#Script)  
-**Returns**: <code>Promise</code> - Promise which fulfills to an object containing all exports
- the script.  
-<a name="Script+detach"></a>
-
-#### script.detach()
-Stop listening for updates
-
-**Kind**: instance method of [<code>Script</code>](#Script)  
-<a name="Script+onUpdate"></a>
-
-#### script.onUpdate(callback, [executeListener]) ⇒ <code>function</code>
-Register a callback to be executed when the script is updated.
-
-**Kind**: instance method of [<code>Script</code>](#Script)  
-**Returns**: <code>function</code> - Function that unregister the callback when executed.  
-
-| Param | Type | Default | Description |
-| --- | --- | --- | --- |
-| callback | <code>function</code> |  | Callback function |
-| [executeListener] | <code>boolean</code> | <code>false</code> | If true, execute the given  callback immediately. |
-
-<a name="Script+onDetach"></a>
-
-#### script.onDetach(callback)
-Register a callback to be executed when the script is detached, i.e. when
-`detach` as been called, or when the script has been deleted
-
-**Kind**: instance method of [<code>Script</code>](#Script)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| callback | <code>function</code> | Callback function |
-
-<a name="Script+update"></a>
-
-#### script.update(value)
-Alias for `plugin.updateScript(name, value)`, calling this method will update
-the source of the script. The update will be propagated to all attached scripts
-
-**Kind**: instance method of [<code>Script</code>](#Script)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| value | <code>string</code> | New source code for the script. |
-
-<a name="Script+delete"></a>
-
-#### script.delete()
-Alias for `plugin.deleteScript(name)`, calling this method will entirely delete
-the script: the file and all associated scripts. If you just want to stop
-using the current script without deleting it, call detach instead
-
-**Kind**: instance method of [<code>Script</code>](#Script)  
 <a name="PluginScriptingServer"></a>
 
 ### PluginScriptingServer
@@ -372,6 +279,103 @@ Attach to a script.
 | --- | --- | --- |
 | name | <code>string</code> | Name of the script |
 
+<a name="SharedScript"></a>
+
+### SharedScript
+A SharedScript can be distributed amongst different clients and modified
+at runtime. The script source is stored directly in the filestem, see
+`dirname` option of the server-side plugin.
+A Shared script cannot be instatiated manually, it is retrieved by calling
+the client's or  server `PluScritping.attach` method.
+
+**Kind**: global class  
+
+* [SharedScript](#SharedScript)
+    * [.source](#SharedScript+source) : <code>string</code>
+    * [.error](#SharedScript+error) : <code>string</code>
+    * [.transpiled](#SharedScript+transpiled) : <code>string</code>
+    * [.import()](#SharedScript+import) ⇒ <code>Promise</code>
+    * [.detach()](#SharedScript+detach)
+    * [.onUpdate(callback, [executeListener])](#SharedScript+onUpdate) ⇒ <code>function</code>
+    * [.onDetach(callback)](#SharedScript+onDetach)
+    * [.update(value)](#SharedScript+update)
+    * [.delete()](#SharedScript+delete)
+
+<a name="SharedScript+source"></a>
+
+#### sharedScript.source : <code>string</code>
+**Kind**: instance property of [<code>SharedScript</code>](#SharedScript)  
+**Read only**: true  
+<a name="SharedScript+error"></a>
+
+#### sharedScript.error : <code>string</code>
+**Kind**: instance property of [<code>SharedScript</code>](#SharedScript)  
+**Read only**: true  
+<a name="SharedScript+transpiled"></a>
+
+#### sharedScript.transpiled : <code>string</code>
+**Kind**: instance property of [<code>SharedScript</code>](#SharedScript)  
+**Read only**: true  
+<a name="SharedScript+import"></a>
+
+#### sharedScript.import() ⇒ <code>Promise</code>
+Dynamically import the transpiled module.
+[https://caniuse.com/?search=import()](https://caniuse.com/?search=import())
+
+**Kind**: instance method of [<code>SharedScript</code>](#SharedScript)  
+**Returns**: <code>Promise</code> - Promise which fulfills to an object containing all exports
+ the script.  
+<a name="SharedScript+detach"></a>
+
+#### sharedScript.detach()
+Stop listening for updates
+
+**Kind**: instance method of [<code>SharedScript</code>](#SharedScript)  
+<a name="SharedScript+onUpdate"></a>
+
+#### sharedScript.onUpdate(callback, [executeListener]) ⇒ <code>function</code>
+Register a callback to be executed when the script is updated.
+
+**Kind**: instance method of [<code>SharedScript</code>](#SharedScript)  
+**Returns**: <code>function</code> - Function that unregister the callback when executed.  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| callback | <code>function</code> |  | Callback function |
+| [executeListener] | <code>boolean</code> | <code>false</code> | If true, execute the given  callback immediately. |
+
+<a name="SharedScript+onDetach"></a>
+
+#### sharedScript.onDetach(callback)
+Register a callback to be executed when the script is detached, i.e. when
+`detach` as been called, or when the script has been deleted
+
+**Kind**: instance method of [<code>SharedScript</code>](#SharedScript)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| callback | <code>function</code> | Callback function |
+
+<a name="SharedScript+update"></a>
+
+#### sharedScript.update(value)
+Alias for `plugin.updateScript(name, value)`, calling this method will update
+the source of the script. The update will be propagated to all attached scripts
+
+**Kind**: instance method of [<code>SharedScript</code>](#SharedScript)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| value | <code>string</code> | New source code for the script. |
+
+<a name="SharedScript+delete"></a>
+
+#### sharedScript.delete()
+Alias for `plugin.deleteScript(name)`, calling this method will entirely delete
+the script: the file and all associated scripts. If you just want to stop
+using the current script without deleting it, call detach instead
+
+**Kind**: instance method of [<code>SharedScript</code>](#SharedScript)  
 
 <!-- apistop -->
 

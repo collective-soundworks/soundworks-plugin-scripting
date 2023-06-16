@@ -1,8 +1,8 @@
 import { isString } from '@ircam/sc-utils';
 import pluginFilesystem from '@soundworks/plugin-filesystem/client.js';
 
-import { sanitizeScriptName } from '../common/utils.js';
-import Script from '../common/Script.js';
+import { sanitizeScriptName } from './utils.js';
+import SharedScript from './SharedScript.js';
 
 const scriptStoreSymbol = Symbol.for('sw:plugin:scripting');
 
@@ -14,7 +14,7 @@ if (!globalThis.getGlobalScriptingContext) {
 
 // @note - most of this code could be factorized with server-side
 
-const pluginFactory = function(Plugin) {
+export default function(Plugin) {
   /**
    * Client-side representation of the soundworks' scripting plugin.
    */
@@ -155,7 +155,7 @@ const pluginFactory = function(Plugin) {
 
       if (entry) {
         const state = await this.client.stateManager.attach(`sw:plugin:${this.id}:script`, entry.id);
-        const script = new Script(name, state, this);
+        const script = new SharedScript(name, state, this);
 
         return Promise.resolve(script);
       } else {
@@ -166,5 +166,3 @@ const pluginFactory = function(Plugin) {
 
   return PluginScriptingClient;
 }
-
-export default pluginFactory;

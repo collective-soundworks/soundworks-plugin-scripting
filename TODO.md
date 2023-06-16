@@ -26,3 +26,6 @@
 --> check if it works for other plugins as well
 
 - [ ] propagate errors from filesystem
+
+- [ ] onUpdate
+  > called when the file is modified directly
