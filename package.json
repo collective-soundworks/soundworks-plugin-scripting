@@ -26,8 +26,10 @@
   },
   "dependencies": {
     "@ircam/sc-utils": "^1.0.1",
+    "@ircam/simple-components": "^2.5.0",
     "@soundworks/plugin-filesystem": "^2.0.0-alpha.1",
     "esbuild": "^0.18.2",
+    "lit": "^2.7.5",
     "normalize-path": "^3.0.0"
   },
   "devDependencies": {

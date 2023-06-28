@@ -106,7 +106,7 @@ class SharedScript {
    * @param {string} value - New source code for the script.
    */
   async update(value) {
-    await this._plugin.update(this.name, value);
+    await this._plugin.updateScript(this.name, value);
   }
 
   /**
@@ -115,7 +115,7 @@ class SharedScript {
    * using the current script without deleting it, call detach instead
    */
   async delete() {
-    await this._plugin.delete(this.name);
+    await this._plugin.deleteScript(this.name);
   }
 }
 
