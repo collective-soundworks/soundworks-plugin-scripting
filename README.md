@@ -28,13 +28,53 @@
 npm install @soundworks/plugin-scripting --save
 ```
 
-## Example
-
-A working example can be found in the [https://github.com/collective-soundworks/soundworks-examples](https://github.com/collective-soundworks/soundworks-examples) repository.
-
 ## Usage
 
-@todo
+### Server
+
+```js
+// src/server/index.js
+import { Server } from '@soundworks/core/server.js';
+import pluginScripting from '@soundworks/plugin-scripting/server.js';
+
+const server = new Server(config);
+// register the plugin
+server.pluginManager.register('scripting', pluginScripting, {
+  dirname: 'my-script',
+});
+await server.start();
+// use the plugin once the server is started
+const scripting = await server.pluginManager.get('scripting');
+scripting.createScript('my-constants', 'export const answer = 42;')
+```
+
+### Client
+
+```js
+// src/client/player/index.js
+import { Client } from '@soundworks/core/client.js';
+import pluginScripting from '@soundworks/plugin-scripting/client.js';
+
+const client = new Client(config);
+// register the plugin
+client.pluginManager.register('scripting', pluginScriptingClient);
+await client.start();
+// use the plugin once the client is started
+const scripting = await client.pluginManager.get('scripting');
+const script = await scripting.attach('my-constants');
+const mod = await script.import();
+console.log(mod.answer);
+```
+
+### Notes
+
+The shared scripts are stored in the file system as raw Javascript files located in the directory defined on the server side (cf. `dirname` option).
+
+The scripts are simple JavaScript modules that are re-bundled using `esbuild` each time their content is modified. As such, they can import installed dependencies (i.e. `node_modules`) or import other scripts.
+
+For now, only named exports are supported. This is the responsibility of the code consuming the shared scripts to define the API that the scripts should expose.
+
+Internally the `scripting` plugin relies on the `@soundworks/plugin-filesystem` plugin. As such, it provide the same security restrictions, i.e. in `production` mode only authentified and trusted clients are allowed to modify the scripts.
 
 ## API
 
@@ -378,10 +418,6 @@ using the current script without deleting it, call detach instead
 **Kind**: instance method of [<code>SharedScript</code>](#SharedScript)  
 
 <!-- apistop -->
-
-## Security concerns
-
-For obvious security reasons, in production or public settings, make sure to disable or protect access to any online editor.
 
 ## Credits
 
