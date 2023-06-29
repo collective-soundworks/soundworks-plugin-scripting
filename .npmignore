@@ -1,7 +1,10 @@
 .editorconfig
 .eslintrc
-
 tests
+TODO.md
+
+# not ready yet
+components/sw-plugin-scripting.js
 
 # junk files
 .DS_Store

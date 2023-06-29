@@ -28,8 +28,11 @@ export default function(Plugin) {
      * Available options:
      * - `dirname` {String} - directory in which the script files are located
      *
+     * If no option is given, for example before a user selects a project, the plugin
+     * will stay idle until `switch` is called.
+     *
      * @example
-     * server.pluginManager.register('filesystem', filesystemPlugin, { dirname })
+     * server.pluginManager.register('scripting', scriptingPlugin, { dirname })
      */
     constructor(server, id, options) {
       super(server, id);

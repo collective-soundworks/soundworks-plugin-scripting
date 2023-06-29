@@ -9,14 +9,15 @@
 <!-- toc -->
 
 - [Installation](#installation)
-- [Example](#example)
 - [Usage](#usage)
+  * [Server](#server)
+  * [Client](#client)
+  * [Notes](#notes)
 - [API](#api)
   * [Classes](#classes)
   * [PluginScriptingClient](#pluginscriptingclient)
   * [PluginScriptingServer](#pluginscriptingserver)
   * [SharedScript](#sharedscript)
-- [Security concerns](#security-concerns)
 - [Credits](#credits)
 - [License](#license)
 
@@ -38,7 +39,7 @@ import { Server } from '@soundworks/core/server.js';
 import pluginScripting from '@soundworks/plugin-scripting/server.js';
 
 const server = new Server(config);
-// register the plugin
+// register the plugin with an optionnal dirname
 server.pluginManager.register('scripting', pluginScripting, {
   dirname: 'my-script',
 });
@@ -219,9 +220,12 @@ instantiated by soundworks when registered in the `pluginManager`
 Available options:
 - `dirname` {String} - directory in which the script files are located
 
+If no option is given, for example before a user selects a project, the plugin
+will stay idle until `switch` is called.
+
 **Example**  
 ```js
-server.pluginManager.register('filesystem', filesystemPlugin, { dirname })
+server.pluginManager.register('scripting', scriptingPlugin, { dirname })
 ```
 <a name="PluginScriptingServer+setGlobalScriptingContext"></a>
 
