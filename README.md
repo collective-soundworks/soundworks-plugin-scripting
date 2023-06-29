@@ -51,7 +51,7 @@ scripting.createScript('my-constants', 'export const answer = 42;')
 ### Client
 
 ```js
-// src/client/player/index.js
+// src/client/**/index.js
 import { Client } from '@soundworks/core/client.js';
 import pluginScripting from '@soundworks/plugin-scripting/client.js';
 
@@ -88,10 +88,6 @@ Internally the `scripting` plugin relies on the `@soundworks/plugin-filesystem` 
 </dd>
 <dt><a href="#PluginScriptingServer">PluginScriptingServer</a></dt>
 <dd><p>Server-side representation of the soundworks&#39; scripting plugin.</p>
-<p>Available options:</p>
-<ul>
-<li>dirname {String} - directory in which the script files are located</li>
-</ul>
 </dd>
 <dt><a href="#SharedScript">SharedScript</a></dt>
 <dd><p>A SharedScript can be distributed amongst different clients and modified
@@ -200,12 +196,10 @@ Attach to a script.
 ### PluginScriptingServer
 Server-side representation of the soundworks' scripting plugin.
 
-Available options:
-- dirname {String} - directory in which the script files are located
-
 **Kind**: global class  
 
 * [PluginScriptingServer](#PluginScriptingServer)
+    * [new PluginScriptingServer()](#new_PluginScriptingServer_new)
     * [.setGlobalScriptingContext(ctx)](#PluginScriptingServer+setGlobalScriptingContext)
     * [.getList()](#PluginScriptingServer+getList) ⇒ <code>Array</code>
     * [.getTree()](#PluginScriptingServer+getTree) ⇒ <code>Object</code>
@@ -216,6 +210,19 @@ Available options:
     * [.deleteScript(name)](#PluginScriptingServer+deleteScript) ⇒ <code>Promise</code>
     * [.attach(name)](#PluginScriptingServer+attach) ⇒ <code>Promise</code>
 
+<a name="new_PluginScriptingServer_new"></a>
+
+#### new PluginScriptingServer()
+The constructor should never be called manually. The plugin will be
+instantiated by soundworks when registered in the `pluginManager`
+
+Available options:
+- `dirname` {String} - directory in which the script files are located
+
+**Example**  
+```js
+server.pluginManager.register('filesystem', filesystemPlugin, { dirname })
+```
 <a name="PluginScriptingServer+setGlobalScriptingContext"></a>
 
 #### pluginScriptingServer.setGlobalScriptingContext(ctx)

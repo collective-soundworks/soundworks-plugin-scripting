@@ -19,11 +19,18 @@ if (!globalThis.getGlobalScriptingContext) {
 export default function(Plugin) {
   /**
    * Server-side representation of the soundworks' scripting plugin.
-   *
-   * Available options:
-   * - dirname {String} - directory in which the script files are located
    */
   class PluginScriptingServer extends Plugin {
+    /**
+     * The constructor should never be called manually. The plugin will be
+     * instantiated by soundworks when registered in the `pluginManager`
+     *
+     * Available options:
+     * - `dirname` {String} - directory in which the script files are located
+     *
+     * @example
+     * server.pluginManager.register('filesystem', filesystemPlugin, { dirname })
+     */
     constructor(server, id, options) {
       super(server, id);
 
