@@ -137,10 +137,11 @@ export default function(Plugin) {
     async _updateState(state, source) {
       try {
         const filename = state.get('filename');
+        // fox this: https://esbuild.github.io/api/#platform
         const buildResult = await build({
           entryPoints: [filename],
           format: 'esm',
-          platform: 'browser',
+          platform: 'node', // platform: 'node',
           bundle: true,
           write: false,
           outfile: 'ouput',
