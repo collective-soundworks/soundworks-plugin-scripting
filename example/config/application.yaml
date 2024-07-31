@@ -1,0 +1,10 @@
+name: example
+author: ""
+clients:
+  exec-browser:
+    target: browser
+  exec-node:
+    target: node
+  editor:
+    target: browser
+    default: true

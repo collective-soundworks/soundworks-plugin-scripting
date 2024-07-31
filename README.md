@@ -67,15 +67,15 @@ const mod = await script.import();
 console.log(mod.answer);
 ```
 
-### Notes
+### Important Notes
 
-The shared scripts are stored in the file system as raw Javascript files located in the directory defined on the server side (cf. `dirname` option).
+The shared scripts are stored in the file system as raw Javascript files located in the directory defined on the server side configuration of the plugin (cf. `dirname` option).
 
-The scripts are simple JavaScript modules that are re-bundled using `esbuild` each time their content is modified. As such, they can import installed dependencies (i.e. `node_modules`) or import other scripts.
-
-For now, only named exports are supported. This is the responsibility of the code consuming the shared scripts to define the API that the scripts should expose.
+The scripts are simple JavaScript modules that are re-bundled using `esbuild` each time their content is modified. As such, they can import installed dependencies (i.e. `node_modules`) or import other scripts. However, using such bundle leads to a restriction in Node.js clients, that can't import native addons directly (in such case you should inject the dependency into the script at runtime). This might change in the future as dynamic `import` of ES modules is more stable.
 
 Internally the `scripting` plugin relies on the `@soundworks/plugin-filesystem` plugin. As such, it provide the same security restrictions, i.e. in `production` mode only authentified and trusted clients are allowed to modify the scripts.
+
+This is the responsibility of the code consuming the shared scripts to define the API that the scripts should expose.
 
 ## API
 
@@ -104,7 +104,7 @@ the client&#39;s or  server <code>PluScritping.attach</code> method.</p>
 ### PluginScriptingClient
 Client-side representation of the soundworks' scripting plugin.
 
-**Kind**: global class  
+**Kind**: global class
 
 * [PluginScriptingClient](#PluginScriptingClient)
     * [.setGlobalScriptingContext(ctx)](#PluginScriptingClient+setGlobalScriptingContext)
@@ -123,7 +123,7 @@ context is store globally, so several scripting plugins running in parallel
 will share the same underlying object. The global `getGlobalScriptingContext`
 function will allow to retrieve the given object from within scripts.
 
-**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)  
+**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -134,21 +134,21 @@ function will allow to retrieve the given object from within scripts.
 #### pluginScriptingClient.getList() ⇒ <code>Array</code>
 Returns the list of all available scripts.
 
-**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)  
+**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)
 <a name="PluginScriptingClient+getTree"></a>
 
 #### pluginScriptingClient.getTree() ⇒ <code>Object</code>
 Convenience method that return the underlying filesystem tree. Can be
 usefull to reuse components created for the filesystem (e.g. sc-filesystem)
 
-**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)  
+**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)
 <a name="PluginScriptingClient+createScript"></a>
 
 #### pluginScriptingClient.createScript(name, [value]) ⇒ <code>Promise</code>
 Create a new script. The returned promise resolves when all underlyings
 states, files and script instances are up-to-date.
 
-**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)  
+**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -161,7 +161,7 @@ states, files and script instances are up-to-date.
 Update an existing script. The returned promise resolves when all underlyings
 states, files and script instances are up-to-date.
 
-**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)  
+**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -174,7 +174,7 @@ states, files and script instances are up-to-date.
 Delete a script. The returned promise resolves when all underlyings
 states, files and script instances are up-to-date.
 
-**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)  
+**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -185,8 +185,8 @@ states, files and script instances are up-to-date.
 #### pluginScriptingClient.attach(name) ⇒ <code>Promise</code>
 Attach to a script.
 
-**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)  
-**Returns**: <code>Promise</code> - Promise that resolves on a new Script instance.  
+**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)
+**Returns**: <code>Promise</code> - Promise that resolves on a new Script instance.
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -197,7 +197,7 @@ Attach to a script.
 ### PluginScriptingServer
 Server-side representation of the soundworks' scripting plugin.
 
-**Kind**: global class  
+**Kind**: global class
 
 * [PluginScriptingServer](#PluginScriptingServer)
     * [new PluginScriptingServer()](#new_PluginScriptingServer_new)
@@ -223,7 +223,7 @@ Available options:
 If no option is given, for example before a user selects a project, the plugin
 will stay idle until `switch` is called.
 
-**Example**  
+**Example**
 ```js
 server.pluginManager.register('scripting', scriptingPlugin, { dirname })
 ```
@@ -235,7 +235,7 @@ context is store globally, so several scripting plugins running in parallel
 will share the same underlying object. The global `getGlobalScriptingContext`
 function will allow to retrieve the given object from within scripts.
 
-**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)  
+**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -246,14 +246,14 @@ function will allow to retrieve the given object from within scripts.
 #### pluginScriptingServer.getList() ⇒ <code>Array</code>
 Returns the list of all available scripts.
 
-**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)  
+**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)
 <a name="PluginScriptingServer+getTree"></a>
 
 #### pluginScriptingServer.getTree() ⇒ <code>Object</code>
 Convenience method that return the underlying filesystem tree. Can be
 usefull to reuse components created for the filesystem (e.g. sc-filesystem)
 
-**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)  
+**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)
 <a name="PluginScriptingServer+onUpdate"></a>
 
 #### pluginScriptingServer.onUpdate(callback, [executeListener]) ⇒ <code>function</code>
@@ -261,8 +261,8 @@ Register callback to execute when a script is created or deleted. The
 callback will receive the updated list of script names and the updated
 file tree.
 
-**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)  
-**Returns**: <code>function</code> - Function that unregister the listener when executed.  
+**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)
+**Returns**: <code>function</code> - Function that unregister the listener when executed.
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -274,7 +274,7 @@ file tree.
 #### pluginScriptingServer.switch(dirname)
 Switch the plugin to watch and use another directory
 
-**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)  
+**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -286,7 +286,7 @@ Switch the plugin to watch and use another directory
 Create a new script. The returned promise resolves when all underlyings
 states, files and script instances are up-to-date.
 
-**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)  
+**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -299,7 +299,7 @@ states, files and script instances are up-to-date.
 Update an existing script. The returned promise resolves when all underlyings
 states, files and script instances are up-to-date.
 
-**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)  
+**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -312,7 +312,7 @@ states, files and script instances are up-to-date.
 Delete a script. The returned promise resolves when all underlyings
 states, files and script instances are up-to-date.
 
-**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)  
+**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -323,8 +323,8 @@ states, files and script instances are up-to-date.
 #### pluginScriptingServer.attach(name) ⇒ <code>Promise</code>
 Attach to a script.
 
-**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)  
-**Returns**: <code>Promise</code> - Promise that resolves on a new Script instance.  
+**Kind**: instance method of [<code>PluginScriptingServer</code>](#PluginScriptingServer)
+**Returns**: <code>Promise</code> - Promise that resolves on a new Script instance.
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -339,7 +339,7 @@ at runtime. The script source is stored directly in the filestem, see
 A Shared script cannot be instatiated manually, it is retrieved by calling
 the client's or  server `PluScritping.attach` method.
 
-**Kind**: global class  
+**Kind**: global class
 
 * [SharedScript](#SharedScript)
     * [.source](#SharedScript+source) : <code>string</code>
@@ -355,40 +355,40 @@ the client's or  server `PluScritping.attach` method.
 <a name="SharedScript+source"></a>
 
 #### sharedScript.source : <code>string</code>
-**Kind**: instance property of [<code>SharedScript</code>](#SharedScript)  
-**Read only**: true  
+**Kind**: instance property of [<code>SharedScript</code>](#SharedScript)
+**Read only**: true
 <a name="SharedScript+error"></a>
 
 #### sharedScript.error : <code>string</code>
-**Kind**: instance property of [<code>SharedScript</code>](#SharedScript)  
-**Read only**: true  
+**Kind**: instance property of [<code>SharedScript</code>](#SharedScript)
+**Read only**: true
 <a name="SharedScript+transpiled"></a>
 
 #### sharedScript.transpiled : <code>string</code>
-**Kind**: instance property of [<code>SharedScript</code>](#SharedScript)  
-**Read only**: true  
+**Kind**: instance property of [<code>SharedScript</code>](#SharedScript)
+**Read only**: true
 <a name="SharedScript+import"></a>
 
 #### sharedScript.import() ⇒ <code>Promise</code>
 Dynamically import the transpiled module.
 [https://caniuse.com/?search=import()](https://caniuse.com/?search=import())
 
-**Kind**: instance method of [<code>SharedScript</code>](#SharedScript)  
+**Kind**: instance method of [<code>SharedScript</code>](#SharedScript)
 **Returns**: <code>Promise</code> - Promise which fulfills to an object containing all exports
- the script.  
+ the script.
 <a name="SharedScript+detach"></a>
 
 #### sharedScript.detach()
 Stop listening for updates
 
-**Kind**: instance method of [<code>SharedScript</code>](#SharedScript)  
+**Kind**: instance method of [<code>SharedScript</code>](#SharedScript)
 <a name="SharedScript+onUpdate"></a>
 
 #### sharedScript.onUpdate(callback, [executeListener]) ⇒ <code>function</code>
 Register a callback to be executed when the script is updated.
 
-**Kind**: instance method of [<code>SharedScript</code>](#SharedScript)  
-**Returns**: <code>function</code> - Function that unregister the callback when executed.  
+**Kind**: instance method of [<code>SharedScript</code>](#SharedScript)
+**Returns**: <code>function</code> - Function that unregister the callback when executed.
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -401,7 +401,7 @@ Register a callback to be executed when the script is updated.
 Register a callback to be executed when the script is detached, i.e. when
 `detach` as been called, or when the script has been deleted
 
-**Kind**: instance method of [<code>SharedScript</code>](#SharedScript)  
+**Kind**: instance method of [<code>SharedScript</code>](#SharedScript)
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -413,7 +413,7 @@ Register a callback to be executed when the script is detached, i.e. when
 Alias for `plugin.updateScript(name, value)`, calling this method will update
 the source of the script. The update will be propagated to all attached scripts
 
-**Kind**: instance method of [<code>SharedScript</code>](#SharedScript)  
+**Kind**: instance method of [<code>SharedScript</code>](#SharedScript)
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -426,7 +426,7 @@ Alias for `plugin.deleteScript(name)`, calling this method will entirely delete
 the script: the file and all associated scripts. If you just want to stop
 using the current script without deleting it, call detach instead
 
-**Kind**: instance method of [<code>SharedScript</code>](#SharedScript)  
+**Kind**: instance method of [<code>SharedScript</code>](#SharedScript)
 
 <!-- apistop -->
 

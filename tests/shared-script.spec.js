@@ -5,6 +5,10 @@ import { Server } from '@soundworks/core/server.js';
 import { assert } from 'chai';
 
 import pluginScriptingServer from '../src/PluginScriptingServer.js';
+import {
+  kGetNodeBuild,
+  kGetBrowserBuild,
+} from '../src/SharedScript.js';
 
 const dirname = path.join(process.cwd(), 'tests', 'static-scripts');
 
@@ -33,15 +37,17 @@ describe(`[common] Script`, () => {
     const script = await plugin.attach('export-default');
 
     assert.equal(script.name, 'export-default.js');
-    assert.equal(script.source, fs.readFileSync(path.join(dirname, 'export-default.js')));
-    assert.notEqual(script.transpiled, null);
-    assert.equal(script.error, null);
+    assert.equal(script.filename, path.join('tests', 'static-scripts', 'export-default.js'));
+    assert.isNull(script.buildError);
+    assert.isNull(script.runtimeError);
+    assert.isNotNull(script[kGetNodeBuild]);
+    assert.isNotNull(script[kGetBrowserBuild]);
 
     await server.stop();
   });
 
   describe('# script.import()', () => {
-    it.skip('should work with default export - is this possible?', async () => {
+    it('should work with default export', async () => {
       const server = new Server(config);
       server.pluginManager.register('scripting', pluginScriptingServer, { dirname });
       await server.start();
@@ -49,7 +55,7 @@ describe(`[common] Script`, () => {
       const plugin = await server.pluginManager.get('scripting');
       const script = await plugin.attach('export-default');
 
-      const add = await script.import();
+      const { default: add } = await script.import();
       assert.equal(add(4, 4), 8);
 
       await server.stop();
@@ -83,7 +89,7 @@ describe(`[common] Script`, () => {
       await server.stop();
     });
 
-    it('should be able to import relative files', async () => {
+    it('should be able to import packages', async () => {
       const server = new Server(config);
       server.pluginManager.register('scripting', pluginScriptingServer, { dirname });
       await server.start();

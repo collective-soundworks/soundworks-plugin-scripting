@@ -7,6 +7,10 @@ import { assert } from 'chai';
 
 import pluginScriptingClient from '../src/PluginScriptingClient.js';
 import pluginScriptingServer from '../src/PluginScriptingServer.js';
+import {
+  kGetNodeBuild,
+  kGetBrowserBuild,
+} from '../src/SharedScript.js';
 
 const staticScripts = path.join(process.cwd(), 'tests', 'static-scripts');
 const dynamicScripts = path.join(process.cwd(), 'tests', 'dynamic-scripts');
@@ -78,282 +82,6 @@ describe(`[server] PluginScripting`, () => {
     });
   });
 
-  describe(`# plugin.createScript(name, value = '')`, () => {
-    it('should throw if script name is not a string', async () => {
-      await serverPlugin.switch(dynamicScripts);
-
-      const client = new Client(config);
-      client.pluginManager.register('scripting', pluginScriptingClient);
-
-      await client.start();
-
-      const plugin = await client.pluginManager.get('scripting');
-
-      let errored = false;
-      try {
-        await plugin.createScript(null);
-      } catch (err) {
-        console.log(err.message);
-        errored = true;
-      }
-
-      await client.stop();
-
-      if (!errored) {
-        assert.fail('should have thrown');
-      }
-    });
-
-    it('should throw if value is not a string', async () => {
-      await serverPlugin.switch(dynamicScripts);
-
-      const client = new Client(config);
-      client.pluginManager.register('scripting', pluginScriptingClient);
-
-      await client.start();
-
-      const plugin = await client.pluginManager.get('scripting');
-
-      let errored = false;
-      try {
-        await plugin.createScript('test', null);
-      } catch (err) {
-        console.log(err.message);
-        errored = true;
-      }
-
-      await client.stop();
-
-      if (!errored) {
-        assert.fail('should have thrown');
-      }
-    });
-
-    it('should throw if script already exists', async () => {
-      fs.writeFileSync(path.join(dynamicScripts, 'already-exists.js'), 'const a = 42;');
-      await serverPlugin.switch(dynamicScripts);
-
-      const client = new Client(config);
-      client.pluginManager.register('scripting', pluginScriptingClient, { dirname: dynamicScripts });
-
-      await client.start();
-
-      const plugin = await client.pluginManager.get('scripting');
-
-      let errored = false;
-      try {
-        await plugin.createScript('already-exists.js', '');
-      } catch (err) {
-        console.log(err.message);
-        errored = true;
-      }
-
-      await client.stop();
-
-      if (!errored) {
-        assert.fail('should have thrown');
-      }
-    });
-
-    it('should write the file with given value and update internals before fullfilling', async () => {
-      await serverPlugin.switch({ dirname: dynamicScripts });
-
-      const client = new Client(config);
-      client.pluginManager.register('scripting', pluginScriptingClient);
-
-      await client.start();
-
-      const plugin = await client.pluginManager.get('scripting');
-      const scriptName = 'create-script.js';
-      const content = `const a = 42;`;
-      await plugin.createScript(scriptName, content);
-
-      // file content should be up-to-date
-      const value = fs.readFileSync(path.join(dynamicScripts, scriptName)).toString();
-      assert.equal(value, content);
-      // internals should be up-to-date
-      assert.equal(plugin.getList().includes(scriptName), true);
-
-      await client.stop();
-    });
-  });
-
-  describe('# plugin.updateScript(name, value)', () => {
-    it('should throw if script name is not a string', async () => {
-      await serverPlugin.switch({ dirname: dynamicScripts });
-
-      const client = new Client(config);
-      client.pluginManager.register('scripting', pluginScriptingClient);
-
-      await client.start();
-
-      const plugin = await client.pluginManager.get('scripting');
-
-      let errored = false;
-      try {
-        await plugin.updateScript(null);
-      } catch (err) {
-        console.log(err.message);
-        errored = true;
-      }
-
-      await client.stop();
-
-      if (!errored) {
-        assert.fail('should have thrown');
-      }
-    });
-
-    it('should throw if value is not a string', async () => {
-      fs.writeFileSync(path.join(dynamicScripts, 'update-script.js'), 'const a = 42;');
-      await serverPlugin.switch({ dirname: dynamicScripts });
-
-      const client = new Client(config);
-      client.pluginManager.register('scripting', pluginScriptingClient);
-
-      await client.start();
-
-      const plugin = await client.pluginManager.get('scripting');
-
-      let errored = false;
-      try {
-        await plugin.updateScript('update-script.js', null);
-      } catch (err) {
-        console.log(err.message);
-        errored = true;
-      }
-
-      await client.stop();
-
-      if (!errored) {
-        assert.fail('should have thrown');
-      }
-    });
-
-    it('should throw if script does not exists', async () => {
-      await serverPlugin.switch({ dirname: dynamicScripts });
-
-      const client = new Client(config);
-      client.pluginManager.register('scripting', pluginScriptingClient);
-
-      await client.start();
-
-      const plugin = await client.pluginManager.get('scripting');
-
-      let errored = false;
-      try {
-        await plugin.updateScript('does-not-exists.js', '');
-      } catch (err) {
-        console.log(err.message);
-        errored = true;
-      }
-
-      await client.stop();
-
-      if (!errored) {
-        assert.fail('should have thrown');
-      }
-    });
-
-    it('should update the file with given value and update internals before fullfilling', async () => {
-      const scriptName = 'update-script.js';
-      fs.writeFileSync(path.join(dynamicScripts, scriptName), 'const a = 42;');
-      await serverPlugin.switch({ dirname: dynamicScripts });
-
-      const client = new Client(config);
-      client.pluginManager.register('scripting', pluginScriptingClient);
-
-      await client.start();
-
-      const plugin = await client.pluginManager.get('scripting');
-      const content = `const b = true;`;
-
-      await plugin.updateScript(scriptName, content);
-      // value should be up-to-date
-      const value = fs.readFileSync(path.join(dynamicScripts, scriptName)).toString();
-      assert.equal(value, content);
-      // internals should be up-to-date
-      assert.equal(plugin.getList().includes(scriptName), true);
-
-      await client.stop();
-    });
-  });
-
-  describe('# plugin.deleteScript(name)', () => {
-    it('should throw if script name is not a string', async () => {
-      await serverPlugin.switch({ dirname: dynamicScripts });
-
-      const client = new Client(config);
-      client.pluginManager.register('scripting', pluginScriptingClient);
-
-      await client.start();
-
-      const plugin = await client.pluginManager.get('scripting');
-
-      let errored = false;
-      try {
-        await plugin.deleteScript(null);
-      } catch (err) {
-        console.log(err.message);
-        errored = true;
-      }
-
-      await client.stop();
-
-      if (!errored) {
-        assert.fail('should have thrown');
-      }
-    });
-
-    it('should throw if script does not exists', async () => {
-      await serverPlugin.switch({ dirname: dynamicScripts });
-
-      const client = new Client(config);
-      client.pluginManager.register('scripting', pluginScriptingClient);
-
-      await client.start();
-
-      const plugin = await client.pluginManager.get('scripting');
-
-      let errored = false;
-      try {
-        await plugin.deleteScript('does-not-exists.js', '');
-      } catch (err) {
-        console.log(err.message);
-        errored = true;
-      }
-
-      await client.stop();
-
-      if (!errored) {
-        assert.fail('should have thrown');
-      }
-    });
-
-    it('should delete the file with given value and update internals before fullfilling', async () => {
-      const scriptName = 'update-script.js';
-      fs.writeFileSync(path.join(dynamicScripts, scriptName), 'const a = 42;');
-
-      await serverPlugin.switch({ dirname: dynamicScripts });
-
-      const client = new Client(config);
-      client.pluginManager.register('scripting', pluginScriptingClient);
-
-      await client.start();
-
-      const plugin = await client.pluginManager.get('scripting');
-
-      await plugin.deleteScript(scriptName);
-      // value should be up-to-date
-      const exists = fs.existsSync(path.join(dynamicScripts, scriptName));
-      assert.equal(exists, false);
-      // internals should be up-to-date
-      assert.equal(plugin.getList().includes(scriptName), false);
-
-      await client.stop();
-    });
-  });
-
   describe('# plugin.attach(name) -> Script', () => {
     it('should throw if script name is not a string', async () => {
       await serverPlugin.switch({ dirname: staticScripts });
@@ -414,11 +142,11 @@ describe(`[server] PluginScripting`, () => {
 
       const plugin = await client.pluginManager.get('scripting');
       const script = await plugin.attach('export-default.js');
-      const expected = fs.readFileSync(path.join(staticScripts, 'export-default.js')).toString();
 
       // assert.equal(script instanceof Script, true); // does not work for whatever reason
       assert.equal(script.name, 'export-default.js');
-      assert.equal(script.source, expected);
+      assert.isNotNull(script[kGetBrowserBuild]);
+      assert.isNotNull(script[kGetNodeBuild]);
 
       await client.stop();
     });
@@ -441,31 +169,6 @@ describe(`[server] PluginScripting`, () => {
       const res = globalThis.getGlobalScriptingContext();
 
       assert.deepEqual(res, ctx);
-
-      await client.stop();
-    });
-  });
-
-  describe('# plugin.onUpdate(callbacks, executeListener = false)', () => {
-    it.skip(`todo`, () => {});
-  });
-
-  describe('# sanitizeName(scriptName)', () => {
-    it('should allow to work without explicit extension', async () => {
-      await serverPlugin.switch({ dirname: dynamicScripts });
-
-      const client = new Client(config);
-      client.pluginManager.register('scripting', pluginScriptingClient);
-      await client.start();
-
-      const plugin = await client.pluginManager.get('scripting');
-      await plugin.createScript('myScript');
-      await plugin.updateScript('myScript', 'const a = 42;');
-
-      const script = await plugin.attach('myScript');
-      assert.equal(script.name, 'myScript.js');
-
-      await plugin.deleteScript('myScript');
 
       await client.stop();
     });

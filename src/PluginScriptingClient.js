@@ -1,4 +1,3 @@
-import { isString } from '@ircam/sc-utils';
 import pluginFilesystem from '@soundworks/plugin-filesystem/client.js';
 
 import { sanitizeScriptName } from './utils.js';
@@ -43,19 +42,24 @@ export default function(Plugin) {
 
     /** @private */
     async start() {
-      this._internalState = await this.client.stateManager.attach(`sw:plugin:${this.id}:internals`);
+      await super.start();
+
+      this._internalState = await this.client.stateManager.attach(`sw:plugin:${this.id}:internal`);
       this._filesystem = await this.client.pluginManager.unsafeGet(`sw:plugin:${this.id}:filesystem`);
     }
 
+    /** @private */
+    async stop() {
+      this._internalState.detach();
+
+      await super.stop();
+    }
+
     /**
-     * Registers a global context object to be used in scripts. Note that the
-     * context is store globally, so several scripting plugins running in parallel
-     * will share the same underlying object. The global `getGlobalScriptingContext`
-     * function will allow to retrieve the given object from within scripts.
-     * @param {Object} ctx - Object to store in global context
+     * Instance of the underlying filesystem plugin
      */
-    setGlobalScriptingContext(ctx) {
-      globalThis[scriptStoreSymbol] = ctx;
+    get filesystem() {
+      return this._filesystem;
     }
 
     /**
@@ -67,79 +71,25 @@ export default function(Plugin) {
     }
 
     /**
-     * Convenience method that return the underlying filesystem tree. Can be
-     * usefull to reuse components created for the filesystem (e.g. sc-filesystem)
-     * @returns {Object}
+     * Return the SharedStateCollection of all the scripts underlying share states.
+     * Provided for build and error monitoring purposes.
+     * If you want a full featured Script instance, see `attach` instead.
+     * @return {Promise<SharedStateCollection>}
      */
-    getTree() {
-      return this._filesystem.getTree();
+    getCollection() {
+      return this.client.stateManager.getCollection(`sw:plugin:${this.id}:script`);
     }
 
-    /**
-     * Create a new script. The returned promise resolves when all underlyings
-     * states, files and script instances are up-to-date.
-     * @param {string} name - Name of the script, will be used as the actual filename
-     * @param {string} [value=''] - Initial value of the script
-     * @return {Promise}
-     */
-    async createScript(name, value = '') {
-      name = sanitizeScriptName(name);
-
-      if (this.getList().includes(name)) {
-        throw new Error(`[soundworks:PluginScripting] Cannot create script "${name}", script already exists`);
-      }
-
-      if (!isString(value)) {
-        throw new Error(`[soundworks:PluginScripting] Invalid value for script "${name}", should be a string`);
-      }
-
-      return new Promise(async (resolve, reject) => {
-        this._resolveOnTriggerScriptName(name, resolve);
-        await this._filesystem.writeFile(name, value);
-      });
-    }
 
     /**
-     * Update an existing script. The returned promise resolves when all underlyings
-     * states, files and script instances are up-to-date.
-     * @param {string} name - Name of the script
-     * @param {string} value - New value of the script
-     * @return {Promise}
+     * Registers a global context object to be used in scripts. Note that the
+     * context is store globally, so several scripting plugins running in parallel
+     * will share the same underlying object. The global `getGlobalScriptingContext`
+     * function will allow to retrieve the given object from within scripts.
+     * @param {Object} ctx - Object to store in global context
      */
-    async updateScript(name, value) {
-      name = sanitizeScriptName(name);
-
-      if (!this.getList().includes(name)) {
-        throw new Error(`[soundworks:PluginScripting] Cannot update script "${name}", script does not exists`);
-      }
-
-      if (!isString(value)) {
-        throw new Error(`[soundworks:PluginScripting] Invalid value for script "${name}", should be a string`);
-      }
-
-      return new Promise(async (resolve, reject) => {
-        this._resolveOnTriggerScriptName(name, resolve);
-        await this._filesystem.writeFile(name, value);
-      });
-    }
-
-    /**
-     * Delete a script. The returned promise resolves when all underlyings
-     * states, files and script instances are up-to-date.
-     * @param {string} name - Name of the script
-     * @return {Promise}
-     */
-    async deleteScript(name) {
-      name = sanitizeScriptName(name);
-
-      if (!this.getList().includes(name)) {
-        throw new Error(`[soundworks:PluginScripting] Cannot delete script "${name}", script does not exists`);
-      }
-
-      return new Promise(async (resolve, reject) => {
-        this._resolveOnTriggerScriptName(name, resolve);
-        await this._filesystem.rm(name);
-      });
+    setGlobalScriptingContext(ctx) {
+      globalThis[scriptStoreSymbol] = ctx;
     }
 
     /**
@@ -155,7 +105,12 @@ export default function(Plugin) {
 
       if (entry) {
         const state = await this.client.stateManager.attach(`sw:plugin:${this.id}:script`, entry.id);
-        const script = new SharedScript(name, state, this);
+
+        if (state.get('name') !== name) {
+          throw new Error(`[debug] Inconcistent script name, attached to ${name}, found ${state.get('name')}`)
+        }
+
+        const script = new SharedScript(state);
 
         return Promise.resolve(script);
       } else {
