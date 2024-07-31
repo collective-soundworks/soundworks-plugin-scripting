@@ -4,6 +4,38 @@ import { isBrowser } from '@ircam/sc-utils';
 export const kGetNodeBuild = Symbol('soundworks:plugin-scirpting:get-node-build');
 export const kGetBrowserBuild = Symbol('soundworks:plugin-scirpting:get-node-build');
 
+const scripts = new Set();
+export const kGetNodeBuildURL = Symbol('soundworks:plugin-scirpting:get-node-build-url');
+export const kGetBrowserBuildURL = Symbol('soundworks:plugin-scirpting:get-node-build-url');
+
+if (isBrowser()) {
+  const testReportError = evt => {
+    const err = evt.reason || evt.error;
+
+    scripts.forEach(script => {
+      if (err.stack.includes(script[kGetBrowserBuildURL].toString())) {
+        evt.stopPropagation();
+        script.reportRuntimeError(err);
+      }
+    });
+  }
+
+  window.addEventListener('error', testReportError);
+  window.addEventListener('unhandledrejection', testReportError);
+} else {
+  const testReportError = err => {
+    scripts.forEach(script => {
+      // if the error comes from this script, report it
+      if (err.stack.includes(script[kGetNodeBuildURL])) {
+        script.reportRuntimeError(err);
+      }
+    });
+  }
+
+  process.prependListener('uncaughtException', testReportError);
+  process.prependListener('unhandledRejection', testReportError);
+}
+
 /**
  * A SharedScript can be distributed amongst different clients and modified
  * at runtime. The script source is stored directly in the filestem, see
@@ -19,34 +51,7 @@ class SharedScript {
   constructor(scriptState) {
     this.#state = scriptState;
 
-    if (isBrowser()) {
-      window.addEventListener('error', function (evt) {
-        console.log('CATCHED ERROR');
-        console.log(evt);
-        // console.log("Caught[via 'error' event]:  '" + evt.message + "' from " + evt.filename + ":" + evt.lineno);
-        // console.log(evt); // has srcElement / target / etc
-        evt.preventDefault();
-      });
-
-      window.addEventListener('unhandledrejection', evt => {
-        const err = evt.reason;
-        // console.log(evt.reason.includes(this.#browserBuildURL.toString()));
-        if (err.stack.includes(this.#browserBuildURL.toString())) {
-          evt.stopPropagation();
-          this.reportRuntimeError(err);
-        }
-      });
-    } else {
-      const testReportError = err => {
-        // if the error comes from this script, report it
-        if (err.stack.includes(this.#nodeBuildURL)) {
-          this.reportRuntimeError(err);
-        }
-      }
-
-      process.prependListener('uncaughtException', testReportError);
-      process.prependListener('unhandledRejection', testReportError);
-    }
+    scripts.add(this);
   }
 
   // for testing only
@@ -57,6 +62,15 @@ class SharedScript {
   get [kGetBrowserBuild] () {
     return this.#state.get('browserBuild');
   }
+
+    // for testing only
+    get [kGetNodeBuildURL] () {
+      return this.#nodeBuildURL;
+    }
+
+    get [kGetBrowserBuildURL] () {
+      return this.#browserBuildURL;
+    }
 
   /**
    * Name of the script (i.e. sanitized relative path)
@@ -167,6 +181,7 @@ class SharedScript {
    * Stop listening for updates
    */
   async detach() {
+    scripts.remove(this);
     await this.#state.detach();
   }
 

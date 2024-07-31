@@ -11,10 +11,11 @@ let triggerId = null;
 export function enter(audioContext, state) {
   console.log('[from script] enter');
   synth = new SimpleSynth(audioContext);
-  // throw new Error('test line 17');
+  // throw new Error('test line 14');
 
   unsubscribe = state.onUpdate(updates => {
     if ('triggerInScript' in updates) {
+      // throw new Error('test line 18');
       // make sure package.json export maps are resolved correctly
       console.log('getTime', getTime()); 
     }
@@ -26,7 +27,7 @@ export function enter(audioContext, state) {
 
   // triggerId = setInterval(() => {
   //   synth.trigger();
-  // }, 1);
+  // }, 50);
 
   return synth.output;
 }
