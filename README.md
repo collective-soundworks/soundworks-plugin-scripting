@@ -15,9 +15,9 @@
   * [Notes](#notes)
 - [API](#api)
   * [Classes](#classes)
-  * [PluginScriptingClient](#pluginscriptingclient)
   * [PluginScriptingServer](#pluginscriptingserver)
   * [SharedScript](#sharedscript)
+- [Development Notes](#development-notes)
 - [Credits](#credits)
 - [License](#license)
 
@@ -107,9 +107,6 @@ await scripting.filesystem.writeFile('add.js', code);
 ### Classes
 
 <dl>
-<dt><a href="#PluginScriptingClient">PluginScriptingClient</a></dt>
-<dd><p>Client-side representation of the soundworks&#39; scripting plugin.</p>
-</dd>
 <dt><a href="#PluginScriptingServer">PluginScriptingServer</a></dt>
 <dd><p>Server-side representation of the soundworks&#39; scripting plugin.</p>
 </dd>
@@ -121,66 +118,6 @@ at runtime. The script source is stored directly in the filestem, see
 the client&#39;s or  server <code>PluginScripting.attach</code> method.</p>
 </dd>
 </dl>
-
-<a name="PluginScriptingClient"></a>
-
-### PluginScriptingClient
-Client-side representation of the soundworks' scripting plugin.
-
-**Kind**: global class  
-
-* [PluginScriptingClient](#PluginScriptingClient)
-    * [.filesystem](#PluginScriptingClient+filesystem)
-    * [.getList()](#PluginScriptingClient+getList) ⇒ <code>Array</code>
-    * [.getCollection()](#PluginScriptingClient+getCollection) ⇒ <code>Promise.&lt;SharedStateCollection&gt;</code>
-    * [.setGlobalScriptingContext(ctx)](#PluginScriptingClient+setGlobalScriptingContext)
-    * [.attach(name)](#PluginScriptingClient+attach) ⇒ <code>Promise</code>
-
-<a name="PluginScriptingClient+filesystem"></a>
-
-#### pluginScriptingClient.filesystem
-Instance of the underlying filesystem plugin
-
-**Kind**: instance property of [<code>PluginScriptingClient</code>](#PluginScriptingClient)  
-<a name="PluginScriptingClient+getList"></a>
-
-#### pluginScriptingClient.getList() ⇒ <code>Array</code>
-Returns the list of all available scripts.
-
-**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)  
-<a name="PluginScriptingClient+getCollection"></a>
-
-#### pluginScriptingClient.getCollection() ⇒ <code>Promise.&lt;SharedStateCollection&gt;</code>
-Return the SharedStateCollection of all the scripts underlying share states.
-Provided for build and error monitoring purposes.
-If you want a full featured Script instance, use the `attach` instead.
-
-**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)  
-<a name="PluginScriptingClient+setGlobalScriptingContext"></a>
-
-#### pluginScriptingClient.setGlobalScriptingContext(ctx)
-Registers a global context object to be used in scripts. Note that the
-context is store globally, so several scripting plugins running in parallel
-will share the same underlying object. The global `getGlobalScriptingContext`
-function will allow to retrieve the given object from within scripts.
-
-**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| ctx | <code>Object</code> | Object to store in global context |
-
-<a name="PluginScriptingClient+attach"></a>
-
-#### pluginScriptingClient.attach(name) ⇒ <code>Promise</code>
-Attach to a script.
-
-**Kind**: instance method of [<code>PluginScriptingClient</code>](#PluginScriptingClient)  
-**Returns**: <code>Promise</code> - Promise that resolves on a new Script instance.  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| name | <code>string</code> | Name of the script |
 
 <a name="PluginScriptingServer"></a>
 
