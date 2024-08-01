@@ -28,7 +28,7 @@ const config = {
   },
 };
 
-describe(`[server] PluginScripting`, () => {
+describe(`PluginScriptingServer`, () => {
   describe(`# [private] plugin.contructor(server, id, options)`, async () => {
     it('should support no options', async () => {
       const server = new Server(config);

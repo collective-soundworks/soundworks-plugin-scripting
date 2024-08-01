@@ -1,9 +1,12 @@
-export default function _default(Plugin: any): {
+export default pluginFactory;
+declare function pluginFactory(Plugin: any): {
     new (client: any, id: any, options?: {}): {
         [x: string]: any;
+        /** @private */
+        "__#2@#internalState": any;
+        /** @private */
+        "__#2@#filesystem": any;
         options: {};
-        _internalState: any;
-        _filesystem: any;
         /** @private */
         start(): Promise<void>;
         /** @private */

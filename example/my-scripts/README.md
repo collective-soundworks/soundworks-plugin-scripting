@@ -30,8 +30,8 @@
 - [x] Issue with plugin-filesystem `exit()` which never resolves...
   -> was a build issue, calling `client.stop()` when socket closed
 
-- [ ] `_createScript` should resolve when builds are done
-- [ ] Tests
+- [x] `_createScript` should resolve when builds are done
+- [x] Tests
   
 #### Ideas
 

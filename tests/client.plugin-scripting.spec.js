@@ -30,7 +30,7 @@ const config = {
   role: 'test',
 };
 
-describe(`[server] PluginScripting`, () => {
+describe(`PluginScriptingClient`, () => {
   let server = null;
   let serverPlugin = null;
 
@@ -56,8 +56,7 @@ describe(`[server] PluginScripting`, () => {
 
       const plugin = await client.pluginManager.get('scripting');
       // internals are up to date
-      assert.isAbove(plugin._internalState.get('nameList').length, 0);
-      assert.isAbove(plugin._internalState.get('nameIdMap').length, 0);
+      assert.isAbove(plugin.getList().length, 0);
 
       // need to clean chokidat listeners
       await client.start();

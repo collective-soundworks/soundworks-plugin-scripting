@@ -27,7 +27,7 @@ const config = {
   },
 };
 
-describe(`[common] Script`, () => {
+describe(`SharedScript`, () => {
   it('# script getters', async () => {
     const server = new Server(config);
     server.pluginManager.register('scripting', pluginScriptingServer, { dirname });

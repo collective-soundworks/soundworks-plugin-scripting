@@ -3,6 +3,7 @@ import pluginFilesystem from '@soundworks/plugin-filesystem/client.js';
 import { sanitizeScriptName } from './utils.js';
 import SharedScript from './SharedScript.js';
 
+/** @private */
 const scriptStoreSymbol = Symbol.for('sw:plugin:scripting');
 
 if (!globalThis.getGlobalScriptingContext) {
@@ -13,18 +14,21 @@ if (!globalThis.getGlobalScriptingContext) {
 
 // @note - most of this code could be factorized with server-side
 
-export default function(Plugin) {
+function pluginFactory(Plugin) {
   /**
    * Client-side representation of the soundworks' scripting plugin.
    */
   class PluginScriptingClient extends Plugin {
+    /** @private */
+    #internalState = null;
+    /** @private */
+    #filesystem = null;
+
+    /** @private */
     constructor(client, id, options = {}) {
       super(client, id);
 
       this.options = Object.assign({}, options);
-
-      this._internalState = null;
-      this._filesystem = null;
 
       this.client.pluginManager.register(`sw:plugin:${this.id}:filesystem`, pluginFilesystem);
       this.client.pluginManager.addDependency(this.id, `sw:plugin:${this.id}:filesystem`);
@@ -34,13 +38,13 @@ export default function(Plugin) {
     async start() {
       await super.start();
 
-      this._internalState = await this.client.stateManager.attach(`sw:plugin:${this.id}:internal`);
-      this._filesystem = await this.client.pluginManager.unsafeGet(`sw:plugin:${this.id}:filesystem`);
+      this.#internalState = await this.client.stateManager.attach(`sw:plugin:${this.id}:internal`);
+      this.#filesystem = await this.client.pluginManager.unsafeGet(`sw:plugin:${this.id}:filesystem`);
     }
 
     /** @private */
     async stop() {
-      this._internalState.detach();
+      this.#internalState.detach();
 
       await super.stop();
     }
@@ -49,7 +53,7 @@ export default function(Plugin) {
      * Instance of the underlying filesystem plugin
      */
     get filesystem() {
-      return this._filesystem;
+      return this.#filesystem;
     }
 
     /**
@@ -57,7 +61,7 @@ export default function(Plugin) {
      * @returns {Array}
      */
     getList() {
-      return this._internalState.get('nameList');
+      return this.#internalState.get('nameList');
     }
 
     /**
@@ -93,7 +97,7 @@ export default function(Plugin) {
         throw new Error(`Cannot execute 'attach' on PluginScriptingClient: ${err.message}`);
       }
 
-      const nameIdMap = this._internalState.get('nameIdMap');
+      const nameIdMap = this.#internalState.get('nameIdMap');
       const entry = nameIdMap.find(e => e.name === name);
 
       if (entry) {
@@ -114,3 +118,5 @@ export default function(Plugin) {
 
   return PluginScriptingClient;
 }
+
+export default pluginFactory;

@@ -27,7 +27,7 @@ export function enter(audioContext, state) {
 
   // triggerId = setInterval(() => {
   //   synth.trigger();
-  // }, 50);
+  // }, 30);
 
   return synth.output;
 }

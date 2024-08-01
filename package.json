@@ -8,8 +8,16 @@
   "license": "BSD-3-Clause",
   "type": "module",
   "exports": {
-    "./client.js": "./src/PluginScriptingClient.js",
-    "./server.js": "./src/PluginScriptingServer.js",
+    "./client.js": {
+      "module": "./src/PluginScriptingClient.js",
+      "node": "./src/PluginScriptingClient.js",
+      "types": "./types/PluginScriptingClient.d.ts"
+    },
+    "./server.js": {
+      "module": "./src/PluginScriptingServer.js",
+      "node": "./src/PluginScriptingServer.js",
+      "types": "./types/PluginScriptingServer.d.ts"
+    },
     "./components/sw-plugin-scripting.js": "./components/sw-plugin-scripting.js"
   },
   "scripts": {
