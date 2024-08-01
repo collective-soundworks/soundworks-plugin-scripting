@@ -31,16 +31,6 @@ export default function(Plugin) {
     }
 
     /** @private */
-    _resolveOnTriggerScriptName(name, resolve) {
-      const unsubscribe = this._internalState.onUpdate(updates => {
-        if ('triggerScriptName' in updates && updates.triggerScriptName === name) {
-          unsubscribe();
-          resolve();
-        }
-      });
-    }
-
-    /** @private */
     async start() {
       await super.start();
 
@@ -73,13 +63,12 @@ export default function(Plugin) {
     /**
      * Return the SharedStateCollection of all the scripts underlying share states.
      * Provided for build and error monitoring purposes.
-     * If you want a full featured Script instance, see `attach` instead.
+     * If you want a full featured Script instance, use the `attach` instead.
      * @return {Promise<SharedStateCollection>}
      */
     getCollection() {
       return this.client.stateManager.getCollection(`sw:plugin:${this.id}:script`);
     }
-
 
     /**
      * Registers a global context object to be used in scripts. Note that the
@@ -98,7 +87,11 @@ export default function(Plugin) {
      * @return {Promise} Promise that resolves on a new Script instance.
      */
     async attach(name) {
-      name = sanitizeScriptName(name);
+      try {
+        name = sanitizeScriptName(name);
+      } catch (err) {
+        throw new Error(`Cannot execute 'attach' on PluginScriptingClient: ${err.message}`);
+      }
 
       const nameIdMap = this._internalState.get('nameIdMap');
       const entry = nameIdMap.find(e => e.name === name);
@@ -107,14 +100,14 @@ export default function(Plugin) {
         const state = await this.client.stateManager.attach(`sw:plugin:${this.id}:script`, entry.id);
 
         if (state.get('name') !== name) {
-          throw new Error(`[debug] Inconcistent script name, attached to ${name}, found ${state.get('name')}`)
+          throw new Error(`[debug] Invalid script, attached to ${name}, found ${state.get('name')}`)
         }
 
         const script = new SharedScript(state);
 
         return Promise.resolve(script);
       } else {
-        throw new Error(`[soundworks:PluginScripting] Cannot attach script "${name}", script does not exists`);
+        throw new Error(`Cannot execute 'attach' on PluginScriptingClient: script "${name}" does not exists`);
       }
     }
   }

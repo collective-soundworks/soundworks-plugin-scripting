@@ -1,13 +1,19 @@
 import { isBrowser } from '@ircam/sc-utils';
 
 // for testing only
+/** @private */
 export const kGetNodeBuild = Symbol('soundworks:plugin-scirpting:get-node-build');
+/** @private */
 export const kGetBrowserBuild = Symbol('soundworks:plugin-scirpting:get-node-build');
 
+/** @private */
 const scripts = new Set();
+/** @private */
 export const kGetNodeBuildURL = Symbol('soundworks:plugin-scirpting:get-node-build-url');
+/** @private */
 export const kGetBrowserBuildURL = Symbol('soundworks:plugin-scirpting:get-node-build-url');
 
+/** @private */
 if (isBrowser()) {
   const testReportError = evt => {
     const err = evt.reason || evt.error;
@@ -40,8 +46,9 @@ if (isBrowser()) {
  * A SharedScript can be distributed amongst different clients and modified
  * at runtime. The script source is stored directly in the filestem, see
  * `dirname` option of the server-side plugin.
+ *
  * A Shared script cannot be instatiated manually, it is retrieved by calling
- * the client's or  server `PluScritping.attach` method.
+ * the client's or  server `PluginScripting.attach` method.
  */
 class SharedScript {
   #state = null;
@@ -108,7 +115,7 @@ class SharedScript {
   }
 
   /**
-   * Dynamically import the transpiled module.
+   * Dynamically import the bundled module.
    * {@link https://caniuse.com/?search=import()}
    * @returns {Promise} Promise which fulfills to the JS module.
    */
@@ -128,8 +135,11 @@ class SharedScript {
       const browserBuild = this.#state.getUnsafe('browserBuild');
       const file = new File([browserBuild], filename, { type: 'text/javascript' });
       this.#browserBuildURL = URL.createObjectURL(file);
-      // the webpack ignore comment is not a huge problem as this is hidden in the lib
-      return await import(/* webpackIgnore: true */this.#browserBuildURL);
+
+      return await import(
+        /* webpackIgnore: true */
+        this.#browserBuildURL
+      );
     } else {
       // ## Note - 2024/07
       // - Raw import of the js file
@@ -160,10 +170,38 @@ class SharedScript {
 
       const nodeBuild = this.#state.getUnsafe('nodeBuild');
       this.#nodeBuildURL = 'data:text/javascript;base64,' + btoa(nodeBuild);
-      return await import(/* webpackIgnore: true */this.#nodeBuildURL);
+
+      return await import(
+        /* webpackIgnore: true */
+        this.#nodeBuildURL
+      );
     }
   }
 
+  /**
+   * Manually report an error catched in try / catch block. While there are global
+   * 'error', 'uncaughtExceptionhandler' that catch errors throws by scripts, this
+   * can be usefull in situations where you want your code to continue after the error:
+   * ```
+   * script.onUpdate(async updates => {
+   *   if (updates.browserBuild) {
+   *     if (mod) {
+   *       // we want to manually catch error that might be thrown in `exit()`
+   *       // because otherwise `mod`` would never be updated
+   *       try {
+   *         mod.exit();
+   *       } catch (err) {
+   *         script.reportRuntimeError(err);
+   *       }
+   *     }
+   *
+   *     mod = await script.import();
+   *     mod.enter();
+   *   }
+   * }, true);
+   * ```
+   * @param {Error} err
+   */
   async reportRuntimeError(err) {
     console.error('Script Runtime Error:', err.message);
 
@@ -174,11 +212,11 @@ class SharedScript {
       message: err.message,
     };
 
-    this.#state.set({ runtimeError });
+    await this.#state.set({ runtimeError });
   }
 
   /**
-   * Stop listening for updates
+   * Detach the script.
    */
   async detach() {
     scripts.remove(this);

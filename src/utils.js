@@ -3,7 +3,7 @@ import normalizePath from 'normalize-path';
 
 export function sanitizeScriptName(name) {
   if (!isString(name)) {
-    throw new Error('[soundworks:PluginScripting] Invalid script name, should be a string');
+    throw new Error('Invalid script name, should be a string');
   }
 
   // don't go lower case as we may want to have class files, e.g. MyClass.js

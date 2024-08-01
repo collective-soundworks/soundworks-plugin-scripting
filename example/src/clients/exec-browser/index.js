@@ -38,11 +38,11 @@ async function main($container) {
   let mod = null;
 
   script.onUpdate(async updates => {
-    if (updates.nodeBuild) {
+    if (updates.browserBuild) {
       if (mod) {
         try {
           // we want to manually catch error that might be thrown in `exit()`
-          // bacause the `mod`` might never be updated in such case
+          // because otherwise `mod`` would never be updated
           output.disconnect();
           mod.exit();
         } catch (err) {

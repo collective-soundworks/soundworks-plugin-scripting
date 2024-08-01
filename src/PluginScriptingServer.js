@@ -236,14 +236,14 @@ export default function(Plugin) {
       // support switch({ dirname }) API to match filesystem API
       if (isPlainObject(dirname)) {
         if (!('dirname' in dirname)) {
-          throw new Error(`[soundworks:PluginScripting] Invalid argument for method switch, argument should contain a "dirname" key`);
+          throw new Error(`Cannot execute 'switch' on PluginScriptingServer: Invalid argument, argument should contain a "dirname" key`);
         }
 
         dirname = dirname.dirname;
       }
 
       if (!isString(dirname) && dirname !== null) {
-        throw new Error(`[soundworks:PluginScripting] Invalid argument for method switch, "dirname" should be a string or null`);
+        throw new Error(`Cannot execute 'switch' on PluginScriptingServer: "dirname" argument should be a string or null`);
       }
 
       this.options.dirname = dirname;
@@ -276,7 +276,11 @@ export default function(Plugin) {
      * @return {Promise} Promise that resolves on a new Script instance.
      */
     async attach(name) {
-      name = sanitizeScriptName(name);
+      try {
+        name = sanitizeScriptName(name);
+      } catch (err) {
+        throw new Error(`Cannot execute 'attach' on PluginScriptingServer: ${err.message}`);
+      }
 
       const nameIdMap = this._internalState.get('nameIdMap');
       const entry = nameIdMap.find(e => e.name === name);
@@ -292,7 +296,7 @@ export default function(Plugin) {
 
         return Promise.resolve(script);
       } else {
-        throw new Error(`[soundworks:PluginScripting] Cannot attach script "${name}", script does not exists`);
+        throw new Error(`Cannot execute 'attach' on PluginScriptingServer: script "${name}" does not exists`);
       }
     }
 

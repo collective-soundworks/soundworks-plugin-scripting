@@ -13,7 +13,6 @@ import {
 } from '../src/SharedScript.js';
 
 const staticScripts = path.join(process.cwd(), 'tests', 'static-scripts');
-const dynamicScripts = path.join(process.cwd(), 'tests', 'dynamic-scripts');
 
 const config = {
   app: {
@@ -34,22 +33,6 @@ const config = {
 describe(`[server] PluginScripting`, () => {
   let server = null;
   let serverPlugin = null;
-
-  // keep repo clean
-  before(async () => {
-    if (fs.existsSync(dynamicScripts)) {
-      fs.rmSync(dynamicScripts, { recursive: true });
-    }
-
-    fs.mkdirSync(dynamicScripts);
-  });
-
-  // keep repo clean
-  // after(() => {
-  //   if (fs.existsSync(dynamicScripts)) {
-  //     fs.rmSync(dynamicScripts, { recursive: true });
-  //   }
-  // });
 
   beforeEach(async () => {
     server = new Server(config);
