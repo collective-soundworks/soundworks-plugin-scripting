@@ -120,5 +120,21 @@ describe(`SharedScript`, () => {
       assert.deepEqual(forwardContext(), ctx);
     });
   });
+
+  describe('# script.detach()', async () => {
+    it('should not crash', async () => {
+      const server = new Server(config);
+      server.pluginManager.register('scripting', pluginScriptingServer, { dirname });
+      await server.start();
+
+      const plugin = await server.pluginManager.get('scripting');
+      const script = await plugin.attach('import-package');
+
+      await script.detach();
+      await server.stop();
+
+      assert.ok(true);
+    });
+  });
 });
 

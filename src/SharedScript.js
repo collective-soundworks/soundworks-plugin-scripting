@@ -219,7 +219,7 @@ class SharedScript {
    * Detach the script.
    */
   async detach() {
-    scripts.remove(this);
+    scripts.delete(this);
     await this.#state.detach();
   }
 
