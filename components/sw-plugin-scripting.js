@@ -104,13 +104,6 @@ class SwPluginScripting extends LitElement {
         this.requestUpdate();
       }
     }, true);
-    // console.log(collection);
-
-    // debug
-    setTimeout(() => {
-      const node = this._filesystem.findInTree('audio/SimpleSynth.js');
-      this._setEditorContent(node);
-    }, 100);
   }
 
   render() {
