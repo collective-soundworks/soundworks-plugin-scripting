@@ -66,8 +66,10 @@ function pluginFactory(Plugin) {
 
     /**
      * Return the SharedStateCollection of all the scripts underlying share states.
-     * Provided for build and error monitoring purposes.
-     * If you want a full featured Script instance, use the `attach` instead.
+     * Provided for build and error monitoring purposes. Can also be used to maintain
+     * a list of existing script, e.g. in a drop-down menu
+     *
+     * If you want a full featured / executable Script instance, use the `attach` instead.
      * @return {Promise<SharedStateCollection>}
      */
     getCollection() {

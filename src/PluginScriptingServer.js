@@ -363,7 +363,11 @@ export default function(Plugin) {
                     buildIds[index] = buildId;
                     // populate build results
                     if (result.errors.length > 0) {
-                      buildResult.buildError = result.errors[0];
+                      // there can be a concurrency when a file is deleted or renamed where
+                      // the watcher tries to rebuild before `esbuild.dispose()` fulfills
+                      if (!/^Could not resolve/.test(result.errors[0].text)) {
+                        buildResult.buildError = result.errors[0];
+                      }
                     } else {
                       buildResult[`${platform}Build`] = result.outputFiles[0].text;
                     }

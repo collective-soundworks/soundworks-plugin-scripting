@@ -179,7 +179,7 @@ class SwPluginScripting extends LitElement {
       case 'rename': {
         await this._filesystem.rename(infos.oldRelPath, infos.newRelPath);
         // if renamed file is the edited one, update editor
-        if (this._source.relPath === infos.oldRelPath) {
+        if (this._source && this._source.relPath === infos.oldRelPath) {
           const node = this._filesystem.findInTree(infos.newRelPath);
           this._setEditorContent(node);
         }
@@ -188,7 +188,7 @@ class SwPluginScripting extends LitElement {
       case 'delete': {
         await this._filesystem.rm(infos.relPath);
         // if delete file is the edited one, empty editor
-        if (this._source.relPath === infos.relPath) {
+        if (this._source && this._source.relPath === infos.relPath) {
           this._source = null;
           this.requestUpdate();
         }
@@ -232,7 +232,6 @@ class SwPluginScripting extends LitElement {
       }
     }
 
-    console.log('setEditorContent', this._currentScript);
     this.requestUpdate();
   }
 
