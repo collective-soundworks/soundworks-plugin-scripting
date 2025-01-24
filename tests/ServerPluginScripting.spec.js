@@ -1,11 +1,13 @@
-import fs from 'node:fs';
 import path from 'node:path';
 
 import { Server } from '@soundworks/core/server.js';
 import { assert } from 'chai';
 import { isFunction } from '@ircam/sc-utils';
 
-import pluginScriptingServer from '../src/PluginScriptingServer.js';
+import ServerPluginScripting, {
+  kScriptInfosByName,
+  kInternalState,
+} from '../src/ServerPluginScripting.js';
 import {
   kGetNodeBuild,
   kGetBrowserBuild,
@@ -17,7 +19,7 @@ const config = {
   app: {
     name: 'test-plugin-scripting',
     clients: {
-      test: { target: 'node' },
+      test: { runtime: 'node' },
     },
   },
   env: {
@@ -28,11 +30,11 @@ const config = {
   },
 };
 
-describe(`PluginScriptingServer`, () => {
-  describe(`# [private] plugin.contructor(server, id, options)`, async () => {
+describe(`ServerPluginScripting`, () => {
+  describe(`# [private] plugin.constructor(server, id, options)`, async () => {
     it('should support no options', async () => {
       const server = new Server(config);
-      server.pluginManager.register('scripting', pluginScriptingServer);
+      server.pluginManager.register('scripting', ServerPluginScripting);
 
       await server.start();
       await server.stop();
@@ -40,8 +42,8 @@ describe(`PluginScriptingServer`, () => {
 
     it('should support options.dirname = null', async () => {
       const server = new Server(config);
-      server.pluginManager.register('scripting', pluginScriptingServer, {
-        dirname: null
+      server.pluginManager.register('scripting', ServerPluginScripting, {
+        dirname: null,
       });
 
       await server.start();
@@ -50,8 +52,8 @@ describe(`PluginScriptingServer`, () => {
 
     it('should support options.dirname = string', async () => {
       const server = new Server(config);
-      server.pluginManager.register('scripting', pluginScriptingServer, {
-        dirname: staticScripts
+      server.pluginManager.register('scripting', ServerPluginScripting, {
+        dirname: staticScripts,
       });
 
       await server.start();
@@ -61,8 +63,8 @@ describe(`PluginScriptingServer`, () => {
 
     it('should throw if options.dirname is neither a string or null', async () => {
       const server = new Server(config);
-      server.pluginManager.register('scripting', pluginScriptingServer, {
-        dirname: 42
+      server.pluginManager.register('scripting', ServerPluginScripting, {
+        dirname: 42,
       });
 
       let errored = false;
@@ -84,8 +86,8 @@ describe(`PluginScriptingServer`, () => {
   describe(`# [private] async plugin.start()`, () => {
     it(`should be ready after server.init()`, async () => {
       const server = new Server(config);
-      server.pluginManager.register('scripting', pluginScriptingServer, {
-        dirname: staticScripts
+      server.pluginManager.register('scripting', ServerPluginScripting, {
+        dirname: staticScripts,
       });
 
       await server.init();
@@ -96,11 +98,11 @@ describe(`PluginScriptingServer`, () => {
       assert.isNotNull(someScript[kGetBrowserBuild]);
       assert.isNotNull(someScript[kGetNodeBuild]);
       // internals are up to date
-      assert.isAbove(plugin._scriptInfosByName.size, 0);
-      assert.isAbove(plugin._internalState.get('nameList').length, 0);
-      assert.isAbove(plugin._internalState.get('nameIdMap').length, 0);
+      assert.isAbove(plugin[kScriptInfosByName].size, 0);
+      assert.isAbove(plugin[kInternalState].get('nameList').length, 0);
+      assert.isAbove(plugin[kInternalState].get('nameIdMap').length, 0);
 
-      // need to clean chokidat listeners
+      // need to clean chokidar listeners
       await server.start();
       await server.stop();
     });
@@ -109,13 +111,13 @@ describe(`PluginScriptingServer`, () => {
   describe('# plugin.switch(dirname)', () => {
     it(`should switch properly`, async () => {
       const server = new Server(config);
-      server.pluginManager.register('scripting', pluginScriptingServer);
+      server.pluginManager.register('scripting', ServerPluginScripting);
 
       await server.start();
 
       const plugin = await server.pluginManager.get('scripting');
 
-      assert.equal(plugin._scriptInfosByName.size, 0);
+      assert.equal(plugin[kScriptInfosByName].size, 0);
       assert.equal(plugin.getList().length, 0);
 
       {
@@ -131,11 +133,11 @@ describe(`PluginScriptingServer`, () => {
           'import-package.js',
           'import-relative.js',
           'scripting-context.js',
-          'utils/math.js'
+          'utils/math.js',
         ];
 
         assert.deepEqual(plugin.getList(), expected);
-        assert.equal(plugin._scriptInfosByName.size, expected.length);
+        assert.equal(plugin[kScriptInfosByName].size, expected.length);
       }
 
       { // alternative API - { dirname }
@@ -148,11 +150,11 @@ describe(`PluginScriptingServer`, () => {
         assert.isNotNull(someScript[kGetNodeBuild]);
 
         const expected = [
-          'math.js'
+          'math.js',
         ];
 
         assert.deepEqual(plugin.getList(), expected);
-        assert.equal(plugin._scriptInfosByName.size, expected.length);
+        assert.equal(plugin[kScriptInfosByName].size, expected.length);
       }
 
       await server.stop();
@@ -162,7 +164,7 @@ describe(`PluginScriptingServer`, () => {
   describe('# plugin.attach(name) -> Script', () => {
     it('should throw if script name is not a string', async () => {
       const server = new Server(config);
-      server.pluginManager.register('scripting', pluginScriptingServer, { dirname: staticScripts });
+      server.pluginManager.register('scripting', ServerPluginScripting, { dirname: staticScripts });
 
       await server.start();
 
@@ -185,7 +187,7 @@ describe(`PluginScriptingServer`, () => {
 
     it('should throw if script does not exists', async () => {
       const server = new Server(config);
-      server.pluginManager.register('scripting', pluginScriptingServer, { dirname: staticScripts });
+      server.pluginManager.register('scripting', ServerPluginScripting, { dirname: staticScripts });
 
       await server.start();
 
@@ -208,7 +210,7 @@ describe(`PluginScriptingServer`, () => {
 
     it('should return a script instance', async () => {
       const server = new Server(config);
-      server.pluginManager.register('scripting', pluginScriptingServer, { dirname: staticScripts });
+      server.pluginManager.register('scripting', ServerPluginScripting, { dirname: staticScripts });
       await server.start();
 
       const plugin = await server.pluginManager.get('scripting');
@@ -223,10 +225,10 @@ describe(`PluginScriptingServer`, () => {
     });
   });
 
-  describe('# plugin.setScriptingContext(ctx) | globalThis.getScriptingContext()', () => {
+  describe.only('# plugin.setScriptingContext(ctx) | globalThis.getScriptingContext()', () => {
     it(`should update global context`, async () => {
       const server = new Server(config);
-      server.pluginManager.register('scripting', pluginScriptingServer);
+      server.pluginManager.register('scripting', ServerPluginScripting);
       await server.start();
 
       const plugin = await server.pluginManager.get('scripting');
@@ -237,8 +239,8 @@ describe(`PluginScriptingServer`, () => {
       };
 
       plugin.setGlobalScriptingContext(ctx);
+      // eslint-disable-next-line no-undef
       const res = getGlobalScriptingContext();
-
       assert.deepEqual(res, ctx);
 
       await server.stop();

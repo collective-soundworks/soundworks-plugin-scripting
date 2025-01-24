@@ -1,10 +1,9 @@
-import fs from 'node:fs';
 import path from 'node:path';
 
 import { Server } from '@soundworks/core/server.js';
 import { assert } from 'chai';
 
-import pluginScriptingServer from '../src/PluginScriptingServer.js';
+import ServerPluginScripting from '../src/ServerPluginScripting.js';
 import {
   kGetNodeBuild,
   kGetBrowserBuild,
@@ -16,7 +15,7 @@ const config = {
   app: {
     name: 'test-plugin-scripting',
     clients: {
-      test: { target: 'node' },
+      test: { runtime: 'node' },
     },
   },
   env: {
@@ -30,7 +29,7 @@ const config = {
 describe(`SharedScript`, () => {
   it('# script getters', async () => {
     const server = new Server(config);
-    server.pluginManager.register('scripting', pluginScriptingServer, { dirname });
+    server.pluginManager.register('scripting', ServerPluginScripting, { dirname });
     await server.start();
 
     const plugin = await server.pluginManager.get('scripting');
@@ -49,7 +48,7 @@ describe(`SharedScript`, () => {
   describe('# script.import()', () => {
     it('should work with default export', async () => {
       const server = new Server(config);
-      server.pluginManager.register('scripting', pluginScriptingServer, { dirname });
+      server.pluginManager.register('scripting', ServerPluginScripting, { dirname });
       await server.start();
 
       const plugin = await server.pluginManager.get('scripting');
@@ -63,7 +62,7 @@ describe(`SharedScript`, () => {
 
     it('should work with named export', async () => {
       const server = new Server(config);
-      server.pluginManager.register('scripting', pluginScriptingServer, { dirname });
+      server.pluginManager.register('scripting', ServerPluginScripting, { dirname });
       await server.start();
 
       const plugin = await server.pluginManager.get('scripting');
@@ -77,7 +76,7 @@ describe(`SharedScript`, () => {
 
     it('should be able to import relative files', async () => {
       const server = new Server(config);
-      server.pluginManager.register('scripting', pluginScriptingServer, { dirname });
+      server.pluginManager.register('scripting', ServerPluginScripting, { dirname });
       await server.start();
 
       const plugin = await server.pluginManager.get('scripting');
@@ -91,7 +90,7 @@ describe(`SharedScript`, () => {
 
     it('should be able to import packages', async () => {
       const server = new Server(config);
-      server.pluginManager.register('scripting', pluginScriptingServer, { dirname });
+      server.pluginManager.register('scripting', ServerPluginScripting, { dirname });
       await server.start();
 
       const plugin = await server.pluginManager.get('scripting');
@@ -105,7 +104,7 @@ describe(`SharedScript`, () => {
 
     it('should be able to retrieve global context', async () => {
       const server = new Server(config);
-      server.pluginManager.register('scripting', pluginScriptingServer, { dirname });
+      server.pluginManager.register('scripting', ServerPluginScripting, { dirname });
       await server.start();
 
       const plugin = await server.pluginManager.get('scripting');
@@ -124,7 +123,7 @@ describe(`SharedScript`, () => {
   describe('# script.detach()', async () => {
     it('should not crash', async () => {
       const server = new Server(config);
-      server.pluginManager.register('scripting', pluginScriptingServer, { dirname });
+      server.pluginManager.register('scripting', ServerPluginScripting, { dirname });
       await server.start();
 
       const plugin = await server.pluginManager.get('scripting');

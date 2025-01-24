@@ -1,12 +1,11 @@
-import fs from 'node:fs';
 import path from 'node:path';
 
 import { Client } from '@soundworks/core/client.js';
 import { Server } from '@soundworks/core/server.js';
 import { assert } from 'chai';
 
-import pluginScriptingClient from '../src/PluginScriptingClient.js';
-import pluginScriptingServer from '../src/PluginScriptingServer.js';
+import ClientPluginScripting from '../src/ClientPluginScripting.js';
+import ServerPluginScripting from '../src/ServerPluginScripting.js';
 import {
   kGetNodeBuild,
   kGetBrowserBuild,
@@ -18,7 +17,7 @@ const config = {
   app: {
     name: 'test-plugin-scripting',
     clients: {
-      test: { target: 'node' },
+      test: { runtime: 'node' },
     },
   },
   env: {
@@ -30,13 +29,13 @@ const config = {
   role: 'test',
 };
 
-describe(`PluginScriptingClient`, () => {
+describe(`ClientPluginScripting`, () => {
   let server = null;
   let serverPlugin = null;
 
   beforeEach(async () => {
     server = new Server(config);
-    server.pluginManager.register('scripting', pluginScriptingServer);
+    server.pluginManager.register('scripting', ServerPluginScripting);
     await server.start();
     serverPlugin = await server.pluginManager.get('scripting');
   });
@@ -50,7 +49,7 @@ describe(`PluginScriptingClient`, () => {
       await serverPlugin.switch(staticScripts);
 
       const client = new Client(config);
-      client.pluginManager.register('scripting', pluginScriptingClient);
+      client.pluginManager.register('scripting', ClientPluginScripting);
 
       await client.init();
 
@@ -69,7 +68,7 @@ describe(`PluginScriptingClient`, () => {
       await serverPlugin.switch({ dirname: staticScripts });
 
       const client = new Client(config);
-      client.pluginManager.register('scripting', pluginScriptingClient);
+      client.pluginManager.register('scripting', ClientPluginScripting);
 
       await client.start();
 
@@ -94,7 +93,7 @@ describe(`PluginScriptingClient`, () => {
       await serverPlugin.switch({ dirname: staticScripts });
 
       const client = new Client(config);
-      client.pluginManager.register('scripting', pluginScriptingClient);
+      client.pluginManager.register('scripting', ClientPluginScripting);
 
       await client.start();
 
@@ -119,7 +118,7 @@ describe(`PluginScriptingClient`, () => {
       await serverPlugin.switch({ dirname: staticScripts });
 
       const client = new Client(config);
-      client.pluginManager.register('scripting', pluginScriptingClient);
+      client.pluginManager.register('scripting', ClientPluginScripting);
       await client.start();
 
       const plugin = await client.pluginManager.get('scripting');
@@ -137,7 +136,7 @@ describe(`PluginScriptingClient`, () => {
   describe('# plugin.setScriptingContext(ctx) | globalThis.getScriptingContext()', () => {
     it(`should update global context`, async () => {
       const client = new Client(config);
-      client.pluginManager.register('scripting', pluginScriptingClient);
+      client.pluginManager.register('scripting', ClientPluginScripting);
       await client.start();
 
       const plugin = await client.pluginManager.get('scripting');

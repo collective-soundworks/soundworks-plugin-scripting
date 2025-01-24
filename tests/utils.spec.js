@@ -10,11 +10,11 @@ describe('sanitizeScriptName', () => {
   });
 
   it('should append .js', () => {
-    assert.equal(sanitizeScriptName('test'), 'test.js')
+    assert.equal(sanitizeScriptName('test'), 'test.js');
   });
 
   it('should normalize given path', () => {
-    assert.equal(sanitizeScriptName('test///niap'), 'test/niap.js')
-    assert.equal(sanitizeScriptName('test niap\\\\MyClass'), 'test niap/MyClass.js')
+    assert.equal(sanitizeScriptName('test///niap'), 'test/niap.js');
+    assert.equal(sanitizeScriptName('test niap\\\\MyClass'), 'test niap/MyClass.js');
   });
 });

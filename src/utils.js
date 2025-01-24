@@ -15,3 +15,5 @@ export function sanitizeScriptName(name) {
 
   return name;
 }
+
+export const kScriptStore = Symbol.for('sw:plugin:scripting');

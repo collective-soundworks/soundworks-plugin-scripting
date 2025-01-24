@@ -1,17 +1,17 @@
 import { isBrowser } from '@ircam/sc-utils';
 
-// for testing only
-/** @private */
-export const kGetNodeBuild = Symbol('soundworks:plugin-scirpting:get-node-build');
-/** @private */
-export const kGetBrowserBuild = Symbol('soundworks:plugin-scirpting:get-node-build');
-
 /** @private */
 const scripts = new Set();
+
+// for testing purpose
 /** @private */
-export const kGetNodeBuildURL = Symbol('soundworks:plugin-scirpting:get-node-build-url');
+export const kGetNodeBuild = Symbol('soundworks:plugin-scripting:get-node-build');
 /** @private */
-export const kGetBrowserBuildURL = Symbol('soundworks:plugin-scirpting:get-node-build-url');
+export const kGetBrowserBuild = Symbol('soundworks:plugin-scripting:get-node-build');
+/** @private */
+export const kGetNodeBuildURL = Symbol('soundworks:plugin-scripting:get-node-build-url');
+/** @private */
+export const kGetBrowserBuildURL = Symbol('soundworks:plugin-scripting:get-node-build-url');
 
 /** @private */
 if (isBrowser()) {
@@ -24,7 +24,7 @@ if (isBrowser()) {
         script.reportRuntimeError(err);
       }
     });
-  }
+  };
 
   window.addEventListener('error', testReportError);
   window.addEventListener('unhandledrejection', testReportError);
@@ -36,7 +36,7 @@ if (isBrowser()) {
         script.reportRuntimeError(err);
       }
     });
-  }
+  };
 
   process.prependListener('uncaughtException', testReportError);
   process.prependListener('unhandledRejection', testReportError);
@@ -44,17 +44,20 @@ if (isBrowser()) {
 
 /**
  * A SharedScript can be distributed amongst different clients and modified
- * at runtime. The script source is stored directly in the filestem, see
- * `dirname` option of the server-side plugin.
+ * at runtime.
  *
- * A Shared script cannot be instatiated manually, it is retrieved by calling
- * the client's or  server `PluginScripting.attach` method.
+ * The script source is stored directly in the filesystem, see `dirname` option
+ * of the server-side plugin.
+ *
+ * A Shared script cannot be instantiated manually, it is retrieved by calling
+ * the `ClientPluginScripting#attach` or `ServerPluginScripting#attach` methods.
  */
 class SharedScript {
   #state = null;
   #browserBuildURL = null;
   #nodeBuildURL = null;
 
+  /** @hideconstructor */
   constructor(scriptState) {
     this.#state = scriptState;
 
@@ -62,22 +65,22 @@ class SharedScript {
   }
 
   // for testing only
-  get [kGetNodeBuild] () {
+  get [kGetNodeBuild]() {
     return this.#state.get('nodeBuild');
   }
 
-  get [kGetBrowserBuild] () {
+  get [kGetBrowserBuild]() {
     return this.#state.get('browserBuild');
   }
 
-    // for testing only
-    get [kGetNodeBuildURL] () {
-      return this.#nodeBuildURL;
-    }
+  // for testing only
+  get [kGetNodeBuildURL]() {
+    return this.#nodeBuildURL;
+  }
 
-    get [kGetBrowserBuildURL] () {
-      return this.#browserBuildURL;
-    }
+  get [kGetBrowserBuildURL]() {
+    return this.#browserBuildURL;
+  }
 
   /**
    * Name of the script (i.e. sanitized relative path)
@@ -97,8 +100,8 @@ class SharedScript {
   }
 
   /**
-   * Error that may have occured during the transpilation of the script.
-   * If no error occured during transpilation, the attribute is set to null.
+   * Error that may have occurred during the transpilation of the script.
+   * If no error occurred during transpilation, the attribute is set to null.
    * @type {string}
    */
   get buildError() {
@@ -106,7 +109,7 @@ class SharedScript {
   }
 
   /**
-   * Runtime error that may have occured during the execution of the script.
+   * Runtime error that may have occurred during the execution of the script.
    * Runtime errors must be reported by the consumer code (cf. reportRuntimeError).
    * @type {string}
    */
@@ -149,7 +152,7 @@ class SharedScript {
       // const absFilename = join(process.cwd(), filename);
       // return import(/* webpackIgnore: true */`${absFilename}?version=${Date.now()}`);
       // ```
-      // This doesn't work of rour use case because the import is cached
+      // This doesn't work of our use case because the import is cached
       // - cf. <https://github.com/nodejs/help/issues/2751>
       // the "version" hack proposed will work for top level module but not
       // for it's deps, which is more a problem for us than not being able to use
@@ -179,10 +182,21 @@ class SharedScript {
   }
 
   /**
-   * Manually report an error catched in try / catch block. While there are global
-   * 'error', 'uncaughtExceptionhandler' that catch errors throws by scripts, this
-   * can be usefull in situations where you want your code to continue after the error:
+   * Manually report an error catched in try / catch block.
+   *
+   * This can be useful in situations where you want your script to expose a specific API:
+   * ```js
+   * const { expectedMethod } = await script.import();
+   *
+   * if (!expectedMethod) {
+   *   const err = new Error('Invalid script "${script.name}": should export a "expectedMethod" function');
+   *   script.reportRuntimeError(err);
+   * }
    * ```
+   *
+   * Or when you want your code to continue after the script error, e.g.:
+   *
+   *  ```js
    * script.onUpdate(async updates => {
    *   if (updates.browserBuild) {
    *     if (mod) {
@@ -200,10 +214,11 @@ class SharedScript {
    *   }
    * }, true);
    * ```
+   *
    * @param {Error} err
    */
   async reportRuntimeError(err) {
-    console.error('Script Runtime Error:', err.message);
+    console.log('Runtime error:', err);
 
     const runtimeError = {
       // cf. https://github.com/mifi/stacktracify (in server hook)
