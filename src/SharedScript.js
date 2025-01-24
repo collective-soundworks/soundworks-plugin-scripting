@@ -52,7 +52,7 @@ if (isBrowser()) {
  * A Shared script cannot be instantiated manually, it is retrieved by calling
  * the `ClientPluginScripting#attach` or `ServerPluginScripting#attach` methods.
  */
-class SharedScript {
+export default class SharedScript {
   #state = null;
   #browserBuildURL = null;
   #nodeBuildURL = null;
@@ -64,20 +64,22 @@ class SharedScript {
     scripts.add(this);
   }
 
-  // for testing only
+  /** @private */
   get [kGetNodeBuild]() {
     return this.#state.get('nodeBuild');
   }
 
+  /** @private */
   get [kGetBrowserBuild]() {
     return this.#state.get('browserBuild');
   }
 
-  // for testing only
+  /** @private */
   get [kGetNodeBuildURL]() {
     return this.#nodeBuildURL;
   }
 
+  /** @private */
   get [kGetBrowserBuildURL]() {
     return this.#browserBuildURL;
   }
@@ -119,8 +121,8 @@ class SharedScript {
 
   /**
    * Dynamically import the bundled module.
-   * {@link https://caniuse.com/?search=import()}
-   * @returns {Promise} Promise which fulfills to the JS module.
+   *
+   * @returns {Promise<Module>} Promise which fulfills to the JS module.
    */
   async import() {
     const filename = this.#state.get('filename');
@@ -139,10 +141,9 @@ class SharedScript {
       const file = new File([browserBuild], filename, { type: 'text/javascript' });
       this.#browserBuildURL = URL.createObjectURL(file);
 
-      return await import(
-        /* webpackIgnore: true */
-        this.#browserBuildURL
-      );
+      // silly issue with documentation.js: https://github.com/documentationjs/documentation/issues/1149
+      const toImport = this.#browserBuildURL;
+      return await import(/* webpackIgnore: true */toImport);
     } else {
       // ## Note - 2024/07
       // - Raw import of the js file
@@ -174,10 +175,9 @@ class SharedScript {
       const nodeBuild = this.#state.getUnsafe('nodeBuild');
       this.#nodeBuildURL = 'data:text/javascript;base64,' + btoa(nodeBuild);
 
-      return await import(
-        /* webpackIgnore: true */
-        this.#nodeBuildURL
-      );
+      // silly issue with documentation.js: https://github.com/documentationjs/documentation/issues/1149
+      const toImport = this.#nodeBuildURL;
+      return await import(/* webpackIgnore: true */toImport);
     }
   }
 
@@ -258,5 +258,3 @@ class SharedScript {
     this.#state.onDetach(callback);
   }
 }
-
-export default SharedScript;

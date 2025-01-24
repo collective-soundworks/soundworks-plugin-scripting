@@ -225,7 +225,7 @@ describe(`ServerPluginScripting`, () => {
     });
   });
 
-  describe.only('# plugin.setScriptingContext(ctx) | globalThis.getScriptingContext()', () => {
+  describe('# plugin.setScriptingContext(ctx) | globalThis.getScriptingContext()', () => {
     it(`should update global context`, async () => {
       const server = new Server(config);
       server.pluginManager.register('scripting', ServerPluginScripting);

@@ -123,7 +123,7 @@ describe(`ClientPluginScripting`, () => {
 
       const plugin = await client.pluginManager.get('scripting');
       const script = await plugin.attach('export-default.js');
-
+      // console.log(script);
       // assert.equal(script instanceof Script, true); // does not work for whatever reason
       assert.equal(script.name, 'export-default.js');
       assert.isNotNull(script[kGetBrowserBuild]);

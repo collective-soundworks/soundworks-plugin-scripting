@@ -20,13 +20,13 @@
     }
   },
   "scripts": {
-    "api": "jsdoc-to-readme --src src/*.js",
-    "doc": "npm run api && npm run toc",
+    "api": "./.scripts/doc-dirty-fix --comment && jsdoc-to-readme --src src && ./.scripts/doc-dirty-fix --uncomment && npm run test",
+    "doc": "npm run api && npm run toc && npm run test",
     "lint": "npx eslint src && npx eslint tests",
     "preversion": "npm run doc && git commit -am 'docs: build' --allow-empty",
     "test": "mocha tests/*.spec.js",
     "test:only": "mocha",
-    "toc": "markdown-toc -i README.md --maxdepth 3",
+    "toc": "markdown-toc -i README.md --maxdepth 2",
     "types": "rm -rf types && tsc"
   },
   "publishConfig": {

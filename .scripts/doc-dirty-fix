@@ -1,0 +1,30 @@
+#!/usr/bin/env node
+
+// dirty fix for silly issue with documentation.js: https://github.com/documentationjs/documentation/issues/1149
+
+import path from 'node:path';
+import fs from 'node:fs';
+
+const uncommented = `return await import(/* webpackIgnore: true */toImport);`
+const commented = `// return await import(/* webpackIgnore: true */toImport);`
+
+const filename = path.join('src', 'SharedScript.js');
+let content = fs.readFileSync(filename).toString();
+let newContent = null;
+
+if (process.argv.includes('--comment')) {
+  console.log('> comment', uncommented);
+  newContent = content.replaceAll(uncommented, commented);
+} else if (process.argv.includes('--uncomment')) {
+  console.log('> uncomment', commented);
+  newContent = content.replaceAll(commented, uncommented);
+}
+
+if (content === newContent) {
+  console.error(`--------------------------------------------`);
+  console.error(`> DOC Dirty Fix Failed!`);
+  console.error(`--------------------------------------------`);
+} else {
+  fs.writeFileSync(filename, newContent);
+}
+
