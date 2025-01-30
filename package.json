@@ -1,6 +1,6 @@
 {
   "name": "@soundworks/plugin-scripting",
-  "version": "2.0.0-alpha.5",
+  "version": "5.0.0",
   "description": "soundworks plugin for managing and editing shared scripts at runtime",
   "authors": [
     "Benjamin Matuszewski"
