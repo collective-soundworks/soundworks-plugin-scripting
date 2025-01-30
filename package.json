@@ -9,18 +9,18 @@
   "type": "module",
   "exports": {
     "./client.js": {
-      "module": "./src/ClientPluginScripting.js",
-      "node": "./src/ClientPluginScripting.js",
-      "types": "./types/ClientPluginScripting.d.ts"
+      "module": "./src/client.js",
+      "node": "./src/client.js",
+      "types": "./types/client.d.ts"
     },
     "./server.js": {
-      "module": "./src/ServerPluginScripting.js",
-      "node": "./src/ServerPluginScripting.js",
-      "types": "./types/ServerPluginScripting.d.ts"
+      "module": "./src/server.js",
+      "node": "./src/server.js",
+      "types": "./types/server.d.ts"
     }
   },
   "scripts": {
-    "api": "./.scripts/doc-dirty-fix --comment && jsdoc-to-readme --src src && ./.scripts/doc-dirty-fix --uncomment && npm run test",
+    "api": "npm run types && ./.scripts/doc-dirty-fix --comment && jsdoc-to-readme --src src && ./.scripts/doc-dirty-fix --uncomment && npm run test",
     "doc": "npm run api && npm run toc && npm run test",
     "lint": "npx eslint src && npx eslint tests",
     "preversion": "npm run doc && git commit -am 'docs: build' --allow-empty",
@@ -59,7 +59,6 @@
     "typescript": "^5.7.3"
   },
   "peerDependencies": {
-    "@ircam/sc-components": "^3.0.0-alpha.78",
-    "lit": "^3.1.4"
+    "@soundworks/core": "^5.0.0"
   }
 }

@@ -59,7 +59,9 @@ const scriptSchema = {
   },
 };
 
+/** @private */
 export const kScriptInfosByName = Symbol('sw:plugin:scripting:script-infos-by-name');
+/** @private */
 export const kInternalState = Symbol('sw:plugin:scripting:internal-state');
 
 /**
@@ -74,23 +76,35 @@ export const kInternalState = Symbol('sw:plugin:scripting:internal-state');
  * If no option is given, for example before a user selects a project, the plugin
  * will stay idle until `switch` is called.
  *
+ * [documentation](https://soundworks.dev/plugins/scripting.html)
+ *
  * @example
  * server.pluginManager.register('scripting', ServerPluginScripting, { dirname });
+ *
+ * @extends {ServerPlugin}
+ *
  */
-export default class PluginScriptingServer extends ServerPlugin {
+export default class ServerPluginScripting extends ServerPlugin {
   #filesystem = null;
 
   /** @hideconstructor */
   constructor(server, id, options) {
     super(server, id);
 
+    /**
+     * @type {object}
+     * @property {string|null} [dirname=null] - Path to the directory in which the script are located
+     * @property {boolean} [verbose=false]
+     */
     this.options = Object.assign({
       dirname: null,
       verbose: false,
     }, options);
 
     // protected for testing purposes
+    /** @private */
     this[kScriptInfosByName] = new Map(); // <name>, { state, esbuildCtx[] }
+    /** @private */
     this[kInternalState] = null;
 
     this.server.pluginManager.register(`sw:plugin:${this.id}:filesystem`, pluginFilesystem);

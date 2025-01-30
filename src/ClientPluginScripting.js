@@ -12,14 +12,15 @@ if (!globalThis.getGlobalScriptingContext) {
 
 /**
  * Client-side representation of the soundworks' scripting plugin.
-*
+ *
  * The constructor should never be called manually. The plugin will be
  * instantiated automatically when registered in the `pluginManager`
  *
+ * @extends {ClientPlugin}
  * @example
  * client.pluginManager.register('scripting', ClientPluginScripting, { dirname });
  */
-export default class PluginScriptingClient extends ClientPlugin {
+export default class ClientPluginScripting extends ClientPlugin {
   /** @private */
   #internalState = null;
   /** @private */

@@ -6,16 +6,18 @@ export const kGetBrowserBuild: unique symbol;
 export const kGetNodeBuildURL: unique symbol;
 /** @private */
 export const kGetBrowserBuildURL: unique symbol;
-export default SharedScript;
 /**
  * A SharedScript can be distributed amongst different clients and modified
- * at runtime. The script source is stored directly in the filestem, see
- * `dirname` option of the server-side plugin.
+ * at runtime.
  *
- * A Shared script cannot be instatiated manually, it is retrieved by calling
- * the client's or  server `PluginScripting.attach` method.
+ * The script source is stored directly in the filesystem, see `dirname` option
+ * of the server-side plugin.
+ *
+ * A Shared script cannot be instantiated manually, it is retrieved by calling
+ * the `ClientPluginScripting#attach` or `ServerPluginScripting#attach` methods.
  */
-declare class SharedScript {
+export default class SharedScript {
+    /** @hideconstructor */
     constructor(scriptState: any);
     /**
      * Name of the script (i.e. sanitized relative path)
@@ -28,28 +30,39 @@ declare class SharedScript {
     */
     get filename(): string;
     /**
-     * Error that may have occured during the transpilation of the script.
-     * If no error occured during transpilation, the attribute is set to null.
+     * Error that may have occurred during the transpilation of the script.
+     * If no error occurred during transpilation, the attribute is set to null.
      * @type {string}
      */
     get buildError(): string;
     /**
-     * Runtime error that may have occured during the execution of the script.
+     * Runtime error that may have occurred during the execution of the script.
      * Runtime errors must be reported by the consumer code (cf. reportRuntimeError).
      * @type {string}
      */
     get runtimeError(): string;
     /**
      * Dynamically import the bundled module.
-     * {@link https://caniuse.com/?search=import()}
-     * @returns {Promise} Promise which fulfills to the JS module.
+     *
+     * @returns {Promise<Module>} Promise which fulfills to the JS module.
      */
-    import(): Promise<any>;
+    import(): Promise<Module>;
     /**
-     * Manually report an error catched in try / catch block. While there are global
-     * 'error', 'uncaughtExceptionhandler' that catch errors throws by scripts, this
-     * can be usefull in situations where you want your code to continue after the error:
+     * Manually report an error catched in try / catch block.
+     *
+     * This can be useful in situations where you want your script to expose a specific API:
+     * ```js
+     * const { expectedMethod } = await script.import();
+     *
+     * if (!expectedMethod) {
+     *   const err = new Error('Invalid script "${script.name}": should export a "expectedMethod" function');
+     *   script.reportRuntimeError(err);
+     * }
      * ```
+     *
+     * Or when you want your code to continue after the script error, e.g.:
+     *
+     *  ```js
      * script.onUpdate(async updates => {
      *   if (updates.browserBuild) {
      *     if (mod) {
@@ -67,6 +80,7 @@ declare class SharedScript {
      *   }
      * }, true);
      * ```
+     *
      * @param {Error} err
      */
     reportRuntimeError(err: Error): Promise<void>;
@@ -88,10 +102,14 @@ declare class SharedScript {
      * @param {Function} callback - Callback function
      */
     onDetach(callback: Function): void;
-    get [kGetNodeBuild](): any;
-    get [kGetBrowserBuild](): any;
-    get [kGetNodeBuildURL](): any;
-    get [kGetBrowserBuildURL](): any;
+    /** @private */
+    private get [kGetNodeBuild]();
+    /** @private */
+    private get [kGetBrowserBuild]();
+    /** @private */
+    private get [kGetNodeBuildURL]();
+    /** @private */
+    private get [kGetBrowserBuildURL]();
     #private;
 }
 //# sourceMappingURL=SharedScript.d.ts.map

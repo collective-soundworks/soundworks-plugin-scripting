@@ -103,7 +103,7 @@ await scripting.filesystem.writeFile('add.js', code);
 
 ### Table of Contents
 
-*   [PluginScriptingClient][1]
+*   [ClientPluginScripting][1]
     *   [Parameters][2]
     *   [Examples][3]
     *   [filesystem][4]
@@ -111,27 +111,28 @@ await scripting.filesystem.writeFile('add.js', code);
     *   [getCollection][6]
     *   [setGlobalScriptingContext][7]
     *   [attach][8]
-*   [PluginScriptingServer][9]
+*   [ServerPluginScripting][9]
     *   [Examples][10]
-    *   [filesystem][11]
-    *   [getList][12]
-    *   [getCollection][13]
-    *   [setGlobalScriptingContext][14]
-    *   [onUpdate][15]
-    *   [switch][16]
-    *   [attach][17]
-*   [SharedScript][18]
-    *   [name][19]
-    *   [filename][20]
-    *   [buildError][21]
-    *   [runtimeError][22]
-    *   [import][23]
-    *   [reportRuntimeError][24]
-    *   [detach][25]
-    *   [onUpdate][26]
-    *   [onDetach][27]
+    *   [options][11]
+    *   [filesystem][12]
+    *   [getList][13]
+    *   [getCollection][14]
+    *   [setGlobalScriptingContext][15]
+    *   [onUpdate][16]
+    *   [switch][17]
+    *   [attach][18]
+*   [SharedScript][19]
+    *   [name][20]
+    *   [filename][21]
+    *   [buildError][22]
+    *   [runtimeError][23]
+    *   [import][24]
+    *   [reportRuntimeError][25]
+    *   [detach][26]
+    *   [onUpdate][27]
+    *   [onDetach][28]
 
-## PluginScriptingClient
+## ClientPluginScripting
 
 **Extends ClientPlugin**
 
@@ -160,7 +161,7 @@ Instance of the underlying filesystem plugin
 
 Returns the list of all available scripts.
 
-Returns **[Array][28]**&#x20;
+Returns **[Array][29]**&#x20;
 
 ### getCollection
 
@@ -170,7 +171,7 @@ a list of existing script, e.g. in a drop-down menu
 
 If you want a full featured / executable Script instance, use the `attach` instead.
 
-Returns **[Promise][29]\<SharedStateCollection>**&#x20;
+Returns **[Promise][30]\<SharedStateCollection>**&#x20;
 
 ### setGlobalScriptingContext
 
@@ -181,7 +182,7 @@ function will allow to retrieve the given object from within scripts.
 
 #### Parameters
 
-*   `ctx` **[Object][30]** Object to store in global context
+*   `ctx` **[Object][31]** Object to store in global context
 
 ### attach
 
@@ -189,11 +190,11 @@ Attach to a script.
 
 #### Parameters
 
-*   `name` **[string][31]** Name of the script
+*   `name` **[string][32]** Name of the script
 
-Returns **[Promise][29]<[SharedScript][18]>** Promise that resolves on a new Script instance.
+Returns **[Promise][30]<[SharedScript][19]>** Promise that resolves on a new Script instance.
 
-## PluginScriptingServer
+## ServerPluginScripting
 
 **Extends ServerPlugin**
 
@@ -215,6 +216,15 @@ will stay idle until `switch` is called.
 server.pluginManager.register('scripting', ServerPluginScripting, { dirname });
 ```
 
+### options
+
+Type: [object][31]
+
+#### Properties
+
+*   `dirname` **([string][32] | null)?** Path to the directory in which the script are located
+*   `verbose` **[boolean][33]?**&#x20;
+
 ### filesystem
 
 Instance of the underlying filesystem plugin.
@@ -223,7 +233,7 @@ Instance of the underlying filesystem plugin.
 
 Returns the list of all available scripts.
 
-Returns **[Array][28]**&#x20;
+Returns **[Array][29]**&#x20;
 
 ### getCollection
 
@@ -231,7 +241,7 @@ Return the SharedStateCollection of all the scripts underlying share states.
 Provided for build and error monitoring purposes.
 If you want a full featured Script instance, see `attach` instead.
 
-Returns **[Promise][29]\<SharedStateCollection>**&#x20;
+Returns **[Promise][30]\<SharedStateCollection>**&#x20;
 
 ### setGlobalScriptingContext
 
@@ -242,7 +252,7 @@ function will allow to retrieve the given object from within scripts.
 
 #### Parameters
 
-*   `ctx` **[Object][30]** Object to store in global context
+*   `ctx` **[Object][31]** Object to store in global context
 
 ### onUpdate
 
@@ -250,11 +260,11 @@ Register callback to execute when a script is created or deleted.
 
 #### Parameters
 
-*   `callback` **[Function][32]** Callback function to execute
+*   `callback` **[Function][34]** Callback function to execute
 *   `executeListener` **[boolean][33]** If true, execute the given
     callback immediately. (optional, default `false`)
 
-Returns **[Function][32]** Function that unregister the listener when executed.
+Returns **[Function][34]** Function that unregister the listener when executed.
 
 ### switch
 
@@ -262,7 +272,7 @@ Switch the plugin to watch and use another directory
 
 #### Parameters
 
-*   `dirname` **([String][31] | [Object][30])** Path to the new directory. As a convenience
+*   `dirname` **([String][32] | [Object][31])** Path to the new directory. As a convenience
     to match the plugin filesystem API, an object containing the 'dirname' key
     can also be passed
 
@@ -272,9 +282,9 @@ Attach to a script.
 
 #### Parameters
 
-*   `name` **[string][31]** Name of the script
+*   `name` **[string][32]** Name of the script
 
-Returns **[Promise][29]<[SharedScript][18]>** Promise that resolves on a new Script instance.
+Returns **[Promise][30]<[SharedScript][19]>** Promise that resolves on a new Script instance.
 
 ## SharedScript
 
@@ -291,33 +301,33 @@ the `ClientPluginScripting#attach` or `ServerPluginScripting#attach` methods.
 
 Name of the script (i.e. sanitized relative path)
 
-Type: [string][31]
+Type: [string][32]
 
 ### filename
 
 Filename from which the script is created.
 
-Type: [string][31]
+Type: [string][32]
 
 ### buildError
 
 Error that may have occurred during the transpilation of the script.
 If no error occurred during transpilation, the attribute is set to null.
 
-Type: [string][31]
+Type: [string][32]
 
 ### runtimeError
 
 Runtime error that may have occurred during the execution of the script.
 Runtime errors must be reported by the consumer code (cf. reportRuntimeError).
 
-Type: [string][31]
+Type: [string][32]
 
 ### import
 
 Dynamically import the bundled module.
 
-Returns **[Promise][29]<[Module][34]>** Promise which fulfills to the JS module.
+Returns **[Promise][30]<[Module][35]>** Promise which fulfills to the JS module.
 
 ### reportRuntimeError
 
@@ -357,7 +367,7 @@ script.onUpdate(async updates => {
 
 #### Parameters
 
-*   `err` **[Error][35]**&#x20;
+*   `err` **[Error][36]**&#x20;
 
 ### detach
 
@@ -369,11 +379,11 @@ Register a callback to be executed when the script is updated.
 
 #### Parameters
 
-*   `callback` **[Function][32]** Callback function
+*   `callback` **[Function][34]** Callback function
 *   `executeListener` **[boolean][33]** If true, execute the given
     callback immediately. (optional, default `false`)
 
-Returns **[Function][32]** Function that unregister the callback when executed.
+Returns **[Function][34]** Function that unregister the callback when executed.
 
 ### onDetach
 
@@ -382,9 +392,9 @@ Register a callback to be executed when the script is detached, i.e. when
 
 #### Parameters
 
-*   `callback` **[Function][32]** Callback function
+*   `callback` **[Function][34]** Callback function
 
-[1]: #pluginscriptingclient
+[1]: #clientpluginscripting
 
 [2]: #parameters
 
@@ -400,59 +410,61 @@ Register a callback to be executed when the script is detached, i.e. when
 
 [8]: #attach
 
-[9]: #pluginscriptingserver
+[9]: #serverpluginscripting
 
 [10]: #examples-1
 
-[11]: #filesystem-1
+[11]: #options
 
-[12]: #getlist-1
+[12]: #filesystem-1
 
-[13]: #getcollection-1
+[13]: #getlist-1
 
-[14]: #setglobalscriptingcontext-1
+[14]: #getcollection-1
 
-[15]: #onupdate
+[15]: #setglobalscriptingcontext-1
 
-[16]: #switch
+[16]: #onupdate
 
-[17]: #attach-1
+[17]: #switch
 
-[18]: #sharedscript
+[18]: #attach-1
 
-[19]: #name
+[19]: #sharedscript
 
-[20]: #filename
+[20]: #name
 
-[21]: #builderror
+[21]: #filename
 
-[22]: #runtimeerror
+[22]: #builderror
 
-[23]: #import
+[23]: #runtimeerror
 
-[24]: #reportruntimeerror
+[24]: #import
 
-[25]: #detach
+[25]: #reportruntimeerror
 
-[26]: #onupdate-1
+[26]: #detach
 
-[27]: #ondetach
+[27]: #onupdate-1
 
-[28]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
+[28]: #ondetach
 
-[29]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise
+[29]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
 
-[30]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
+[30]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise
 
-[31]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
+[31]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
 
-[32]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function
+[32]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
 
 [33]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean
 
-[34]: https://nodejs.org/api/modules.html
+[34]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function
 
-[35]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Error
+[35]: https://nodejs.org/api/modules.html
+
+[36]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Error
 
 <!-- apistop -->
 
