@@ -42,7 +42,7 @@
   "homepage": "https://soundworks.dev",
   "dependencies": {
     "@ircam/sc-utils": "^1.9.0",
-    "@soundworks/plugin-filesystem": "^2.0.0-alpha.7",
+    "@soundworks/plugin-filesystem": "^5.0.0",
     "convert-source-map": "^2.0.0",
     "esbuild": "^0.24.2",
     "normalize-path": "^3.0.0",
@@ -51,7 +51,6 @@
   },
   "devDependencies": {
     "@ircam/eslint-config": "^2.0.1",
-    "@soundworks/core": "^4.0.0-alpha.7",
     "chai": "^5.1.2",
     "jsdoc-to-readme": "^2.0.2",
     "markdown-toc": "^1.2.0",
