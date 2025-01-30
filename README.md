@@ -11,8 +11,9 @@
 - [Installation](#installation)
 - [Usage](#usage)
 - [API](#api)
-- [PluginScriptingClient](#pluginscriptingclient)
-- [PluginScriptingServer](#pluginscriptingserver)
+- [ClientPluginScripting](#clientpluginscripting)
+- [ServerPluginScripting](#serverpluginscripting)
+- [SharedScript](#sharedscript)
 - [Development Notes](#development-notes)
 - [Credits](#credits)
 - [License](#license)
@@ -210,6 +211,8 @@ Available options:
 If no option is given, for example before a user selects a project, the plugin
 will stay idle until `switch` is called.
 
+[documentation][33]
+
 ### Examples
 
 ```javascript
@@ -223,7 +226,7 @@ Type: [object][31]
 #### Properties
 
 *   `dirname` **([string][32] | null)?** Path to the directory in which the script are located
-*   `verbose` **[boolean][33]?**&#x20;
+*   `verbose` **[boolean][34]?**&#x20;
 
 ### filesystem
 
@@ -260,11 +263,11 @@ Register callback to execute when a script is created or deleted.
 
 #### Parameters
 
-*   `callback` **[Function][34]** Callback function to execute
-*   `executeListener` **[boolean][33]** If true, execute the given
+*   `callback` **[Function][35]** Callback function to execute
+*   `executeListener` **[boolean][34]** If true, execute the given
     callback immediately. (optional, default `false`)
 
-Returns **[Function][34]** Function that unregister the listener when executed.
+Returns **[Function][35]** Function that unregister the listener when executed.
 
 ### switch
 
@@ -327,7 +330,7 @@ Type: [string][32]
 
 Dynamically import the bundled module.
 
-Returns **[Promise][30]<[Module][35]>** Promise which fulfills to the JS module.
+Returns **[Promise][30]<[Module][36]>** Promise which fulfills to the JS module.
 
 ### reportRuntimeError
 
@@ -367,7 +370,7 @@ script.onUpdate(async updates => {
 
 #### Parameters
 
-*   `err` **[Error][36]**&#x20;
+*   `err` **[Error][37]**&#x20;
 
 ### detach
 
@@ -379,11 +382,11 @@ Register a callback to be executed when the script is updated.
 
 #### Parameters
 
-*   `callback` **[Function][34]** Callback function
-*   `executeListener` **[boolean][33]** If true, execute the given
+*   `callback` **[Function][35]** Callback function
+*   `executeListener` **[boolean][34]** If true, execute the given
     callback immediately. (optional, default `false`)
 
-Returns **[Function][34]** Function that unregister the callback when executed.
+Returns **[Function][35]** Function that unregister the callback when executed.
 
 ### onDetach
 
@@ -392,7 +395,7 @@ Register a callback to be executed when the script is detached, i.e. when
 
 #### Parameters
 
-*   `callback` **[Function][34]** Callback function
+*   `callback` **[Function][35]** Callback function
 
 [1]: #clientpluginscripting
 
@@ -458,13 +461,15 @@ Register a callback to be executed when the script is detached, i.e. when
 
 [32]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
 
-[33]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean
+[33]: https://soundworks.dev/plugins/scripting.html
 
-[34]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function
+[34]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean
 
-[35]: https://nodejs.org/api/modules.html
+[35]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function
 
-[36]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Error
+[36]: https://nodejs.org/api/modules.html
+
+[37]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Error
 
 <!-- apistop -->
 
