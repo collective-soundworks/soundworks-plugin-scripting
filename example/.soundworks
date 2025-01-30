@@ -1,7 +1,0 @@
-{
-  "createVersion": "1.0.0-alpha.23",
-  "name": "example",
-  "eslint": true,
-  "language": "js",
-  "configFormat": "yaml"
-}
