@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import url from 'node:url';
+
 import { isString, isPlainObject, counter } from '@ircam/sc-utils';
 import { ServerPlugin } from '@soundworks/core/server.js';
 import pluginFilesystem from '@soundworks/plugin-filesystem/server.js';
@@ -408,6 +411,28 @@ export default class ServerPluginScripting extends ServerPlugin {
               },
             };
 
+            const plugins = [updateStatePlugin];
+
+            // @todo - check behavior on browsers
+            // cf. https://github.com/evanw/esbuild/issues/1492#issuecomment-891676215
+            if (platform === 'node') {
+              const importMetaUrlPlugin = {
+                name: 'import.meta.url',
+                setup({ onLoad }) {
+                  onLoad({ filter: /()/, namespace: 'file' }, args => {
+                    let code = fs.readFileSync(args.path, 'utf8')
+                    code = code.replace(
+                      /\bimport\.meta\.url\b/g,
+                      JSON.stringify(url.pathToFileURL(args.path))
+                    )
+                    return { contents: code }
+                  });
+                },
+              };
+
+              plugins.push(importMetaUrlPlugin);
+            }
+
             const ctx = await esbuild.context({
               entryPoints: [filename],
               write: false,
@@ -418,7 +443,7 @@ export default class ServerPluginScripting extends ServerPlugin {
               // keepNames: true, // important for instanceof checks
               sourcemap: 'inline', // not sure we can actually use that
               metafile: true,
-              plugins: [updateStatePlugin],
+              plugins,
             });
 
             await ctx.watch();
