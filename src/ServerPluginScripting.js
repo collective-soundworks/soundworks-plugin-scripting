@@ -420,12 +420,12 @@ export default class ServerPluginScripting extends ServerPlugin {
                 name: 'import.meta.url',
                 setup({ onLoad }) {
                   onLoad({ filter: /()/, namespace: 'file' }, args => {
-                    let code = fs.readFileSync(args.path, 'utf8')
+                    let code = fs.readFileSync(args.path, 'utf8');
                     code = code.replace(
                       /\bimport\.meta\.url\b/g,
-                      JSON.stringify(url.pathToFileURL(args.path))
-                    )
-                    return { contents: code }
+                      JSON.stringify(url.pathToFileURL(args.path)),
+                    );
+                    return { contents: code };
                   });
                 },
               };
