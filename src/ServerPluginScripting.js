@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import path from 'node:path';
 import url from 'node:url';
 
 import { isString, isPlainObject, counter } from '@ircam/sc-utils';
@@ -413,18 +414,22 @@ export default class ServerPluginScripting extends ServerPlugin {
 
             const plugins = [updateStatePlugin];
 
-            // @todo - check behavior on browsers
+            // @todo - define the behavior we want on browsers
             // cf. https://github.com/evanw/esbuild/issues/1492#issuecomment-891676215
             if (platform === 'node') {
               const importMetaUrlPlugin = {
                 name: 'import.meta.url',
                 setup({ onLoad }) {
                   onLoad({ filter: /()/, namespace: 'file' }, args => {
+                    // `args.path` is absolute and then relies on the server filesystem.
+                    // We need to make it dynamic according `process.cwd()` so that
+                    // clients can tap into their own filesystem.
+                    const localUrl = url.pathToFileURL(args.path).href;
+                    const dynamicUrl = `'${localUrl.replace(process.cwd(), '\' + process.cwd() + \'')}'`;
+
                     let code = fs.readFileSync(args.path, 'utf8');
-                    code = code.replace(
-                      /\bimport\.meta\.url\b/g,
-                      JSON.stringify(url.pathToFileURL(args.path)),
-                    );
+                    code = code.replace(/\bimport\.meta\.url\b/g, dynamicUrl);
+
                     return { contents: code };
                   });
                 },
