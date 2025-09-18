@@ -199,7 +199,8 @@ export default class ServerPluginScripting extends ServerPlugin {
   /** @private */
   async stop() {
     await this.switch(null);
-    await this[kInternalState].delete();
+    // @todo - fixme, cf. https://github.com/collective-soundworks/soundworks/issues/119
+    // await this[kInternalState].delete();
   }
 
   /**
