@@ -1,5 +1,7 @@
 import { isBrowser } from '@ircam/sc-utils';
 
+import { formatErrorStack } from './utils.js';
+
 /** @private */
 const scripts = new Set();
 
@@ -64,6 +66,7 @@ export default class SharedScript {
     scripts.add(this);
   }
 
+  // expose these - @todo - fix the tests
   /** @private */
   get [kGetNodeBuild]() {
     return this.#state.get('nodeBuild');
@@ -218,16 +221,20 @@ export default class SharedScript {
    * @param {Error} err
    */
   async reportRuntimeError(err) {
-    console.log('Runtime error:', err);
-
-    const runtimeError = {
+    // grab infos from sourcemap in server
+    const errorInfos = {
       // cf. https://github.com/mifi/stacktracify (in server hook)
       source: isBrowser() ? 'browser' : 'node',
       stack: err.stack,
       message: err.message,
     };
 
-    await this.#state.set({ runtimeError });
+    // @todo - rename `runtimeError` to `errorInfos`
+    const { runtimeError } = await this.#state.set('runtimeError', errorInfos);
+    err = formatErrorStack(err, runtimeError);
+
+    console.log(`[SharedScript error in "${runtimeError.location.source}"]`);
+    console.log(err);
   }
 
   /**
@@ -240,10 +247,11 @@ export default class SharedScript {
 
   /**
    * Register a callback to be executed when the script is updated.
+   *
    * @param {Function} callback - Callback function
    * @param {boolean} [executeListener=false] - If true, execute the given
    *  callback immediately.
-   * @return {Function} Function that unregister the callback when executed.
+   * @return {Function} Function that removes the callback from the listeners when executed.
    */
   onUpdate(callback, executeListener = false) {
     return this.#state.onUpdate(callback, executeListener);
@@ -252,6 +260,7 @@ export default class SharedScript {
   /**
    * Register a callback to be executed when the script is detached, i.e. when
    * `detach` as been called, or when the script has been deleted
+   *
    * @param {Function} callback - Callback function
    */
   onDetach(callback) {

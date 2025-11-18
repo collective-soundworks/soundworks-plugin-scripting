@@ -16,4 +16,15 @@ export function sanitizeScriptName(name) {
   return name;
 }
 
+export function formatErrorStack(err, parsedInfos) {
+  const stackLines = err.stack.split('\n');
+  // rewrite first line to insert actual source position
+  stackLines[1] = `    at ${parsedInfos.location.methodName} (${parsedInfos.location.source}:${parsedInfos.location.line}:${parsedInfos.location.column})`;
+  stackLines.splice(2, 0, `    | ${parsedInfos.location.lineText}`);
+  stackLines.length = 6; // no need for huge stack traces
+  err.stack = stackLines.join('\n');
+
+  return err;
+}
+
 export const kScriptStore = Symbol.for('sw:plugin:scripting');
