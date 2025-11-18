@@ -90,15 +90,17 @@ export default class SharedScript {
     detach(): Promise<void>;
     /**
      * Register a callback to be executed when the script is updated.
+     *
      * @param {Function} callback - Callback function
      * @param {boolean} [executeListener=false] - If true, execute the given
      *  callback immediately.
-     * @return {Function} Function that unregister the callback when executed.
+     * @return {Function} Function that removes the callback from the listeners when executed.
      */
     onUpdate(callback: Function, executeListener?: boolean): Function;
     /**
      * Register a callback to be executed when the script is detached, i.e. when
      * `detach` as been called, or when the script has been deleted
+     *
      * @param {Function} callback - Callback function
      */
     onDetach(callback: Function): void;
