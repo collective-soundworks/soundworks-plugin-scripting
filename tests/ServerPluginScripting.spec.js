@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 
 import { Server } from '@soundworks/core/server.js';
@@ -127,12 +128,16 @@ describe(`ServerPluginScripting`, () => {
         assert.isNotNull(someScript[kGetBrowserBuild]);
         assert.isNotNull(someScript[kGetNodeBuild]);
 
+        // @todo - make this more robust, e.g.
+        // const expected = fs.readdirSync(staticScripts, { recursive: true });
+        // but filter only files
         const expected = [
           'export-default.js',
           'export-named.js',
           'import-package.js',
           'import-relative.js',
           'scripting-context.js',
+          'throw-in-timeout.js',
           'utils/math.js',
         ];
 
@@ -239,7 +244,6 @@ describe(`ServerPluginScripting`, () => {
       };
 
       plugin.setGlobalScriptingContext(ctx);
-      // eslint-disable-next-line no-undef
       const res = getGlobalScriptingContext();
       assert.deepEqual(res, ctx);
 

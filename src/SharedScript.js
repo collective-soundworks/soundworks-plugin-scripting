@@ -1,5 +1,9 @@
 import { isBrowser } from '@ircam/sc-utils';
 
+import * as stackTraceParser from 'stacktrace-parser';
+import { SourceMapConsumer } from 'source-map-js';
+import sourceMapConvert from 'convert-source-map';
+
 import { formatErrorStack } from './utils.js';
 
 /** @private */
@@ -15,6 +19,9 @@ export const kGetNodeBuildURL = Symbol('soundworks:plugin-scripting:get-node-bui
 /** @private */
 export const kGetBrowserBuildURL = Symbol('soundworks:plugin-scripting:get-node-build-url');
 
+/**
+ * Handle async errors
+ */
 /** @private */
 if (isBrowser()) {
   const testReportError = evt => {
@@ -58,6 +65,7 @@ export default class SharedScript {
   #state = null;
   #browserBuildURL = null;
   #nodeBuildURL = null;
+  #sourceMapConsumer = null;
 
   /** @hideconstructor */
   constructor(scriptState) {
@@ -130,6 +138,20 @@ export default class SharedScript {
   async import() {
     const filename = this.#state.get('filename');
 
+    const code = isBrowser()
+      ? this.#state.getUnsafe('browserBuild')
+      : this.#state.getUnsafe('nodeBuild');
+
+    if (code === null) {
+      throw new Error('Cannot execute "import" on SharedScript: script code is null, this may be due to a build error');
+    }
+
+    // update sourcemap consumer
+    const sourceMap = code.split('//#')[1];
+    const sourceMapJson = sourceMapConvert.fromComment(`//#${sourceMap}`).toJSON();
+    this.#sourceMapConsumer = new SourceMapConsumer(sourceMapJson);
+
+    let toImport;
     // ## Notes
     // - 2023/06 - We need this branch because File is still experimental and only available in node 20,
     // - 2024/07 - Still experimental in node 22.5
@@ -140,13 +162,11 @@ export default class SharedScript {
     if (isBrowser()) {
       URL.revokeObjectURL(this.#browserBuildURL);
 
-      const browserBuild = this.#state.getUnsafe('browserBuild');
-      const file = new File([browserBuild], filename, { type: 'text/javascript' });
+      const file = new File([code], filename, { type: 'text/javascript' });
       this.#browserBuildURL = URL.createObjectURL(file);
 
       // silly issue with documentation.js: https://github.com/documentationjs/documentation/issues/1149
-      const toImport = this.#browserBuildURL;
-      return await import(/* webpackIgnore: true */toImport);
+      toImport = this.#browserBuildURL;
     } else {
       // ## Note - 2024/07
       // - Raw import of the js file
@@ -175,13 +195,21 @@ export default class SharedScript {
       // to not terminate the process when it finds the pattern in the error stack.
       // Any modification here should take this question into account.
 
-      const nodeBuild = this.#state.getUnsafe('nodeBuild');
-      this.#nodeBuildURL = 'data:text/javascript;base64,' + btoa(nodeBuild);
+      this.#nodeBuildURL = 'data:text/javascript;base64,' + btoa(code);
 
       // silly issue with documentation.js: https://github.com/documentationjs/documentation/issues/1149
-      const toImport = this.#nodeBuildURL;
-      return await import(/* webpackIgnore: true */toImport);
+      toImport = this.#nodeBuildURL;
     }
+
+    let mod;
+
+    try {
+      mod = await import(/* webpackIgnore: true */toImport);
+    } catch (err) {
+      this.reportRuntimeError(err);
+    }
+
+    return mod;
   }
 
   /**
@@ -221,20 +249,41 @@ export default class SharedScript {
    * @param {Error} err
    */
   async reportRuntimeError(err) {
-    // grab infos from sourcemap in server
-    const errorInfos = {
-      // cf. https://github.com/mifi/stacktracify (in server hook)
-      source: isBrowser() ? 'browser' : 'node',
-      stack: err.stack,
-      message: err.message,
-    };
+    // script has been successfully imported
+    if (this.#sourceMapConsumer) {
+      const parsedStack = stackTraceParser.parse(err.stack);
+      const first = parsedStack[0];
 
-    // @todo - rename `runtimeError` to `errorInfos`
-    const { runtimeError } = await this.#state.set('runtimeError', errorInfos);
-    err = formatErrorStack(err, runtimeError);
+      const location = this.#sourceMapConsumer.originalPositionFor({
+        line: first.lineNumber,
+        column: first.column,
+      });
 
-    console.log(`[SharedScript error in "${runtimeError.location.source}"]`);
-    console.log(err);
+      if (location.source !== null) {
+        // grab line text
+        const originalSource = this.#sourceMapConsumer.sourceContentFor(location.source);
+        location.lineText = originalSource.split('\n')[location.line - 1];
+        // can be useful too
+        if (first.methodName) {
+          location.methodName = first.methodName;
+        }
+      }
+
+      // override stack
+      err = formatErrorStack(err, location);
+      console.error(err);
+      // tag error as scripting error, so that
+      err.PLUGIN_SCRIPTING_ERROR = true;
+
+      this.#state.set('runtimeError', {
+        source: isBrowser() ? 'browser' : 'node',
+        message: err.message,
+        text: err.message,
+        location,
+      });
+    } else {
+      console.log(err);
+    }
   }
 
   /**

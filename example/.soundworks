@@ -1,0 +1,7 @@
+{
+  "configFormat": "yaml",
+  "name": "example",
+  "createVersion": "6.0.1",
+  "template": "js",
+  "templatePackage": "@soundworks/create"
+}

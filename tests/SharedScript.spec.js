@@ -8,6 +8,9 @@ import {
   kGetNodeBuild,
   kGetBrowserBuild,
 } from '../src/SharedScript.js';
+import {
+  delay,
+} from '@ircam/sc-utils';
 
 const dirname = path.join(process.cwd(), 'tests', 'static-scripts');
 
@@ -132,6 +135,30 @@ describe(`SharedScript`, () => {
       await script.detach();
       await server.stop();
 
+      assert.ok(true);
+    });
+  });
+
+  describe('# Error handling', () => {
+    // Note that error in timeout or in async function are catched globally
+    // they can't be catched with a try / catch block.
+    // @todo - Find out how to test it properly
+    it.skip('should cleanly catch and report errors in timeouts', async () => {
+      const server = new Server(config);
+      server.pluginManager.register('scripting', ServerPluginScripting, { dirname });
+      await server.start();
+
+      const plugin = await server.pluginManager.get('scripting');
+      const script = await plugin.attach('throw-in-timeout');
+      const { throwInTimeout } = await script.import();
+
+      try {
+        throwInTimeout();
+      } catch (err) {
+        console.log(err);
+      }
+
+      await delay(20);
       assert.ok(true);
     });
   });

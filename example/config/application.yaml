@@ -1,0 +1,8 @@
+name: example
+author: ""
+clients:
+  browser-client:
+    runtime: browser
+    default: true
+  node-client:
+    runtime: node

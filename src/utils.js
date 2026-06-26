@@ -16,12 +16,19 @@ export function sanitizeScriptName(name) {
   return name;
 }
 
-export function formatErrorStack(err, parsedInfos) {
-  const stackLines = err.stack.split('\n');
+export function formatErrorStack(err, location) {
+  const stackLines = err.stack.split('\n').map((line, index) => {
+    // line 0 is error message, we don't want to cut it
+    if (index !== 0 && line.length > 160) {
+      return line.slice(0, 160) + '...';
+    }
+
+    return line;
+  });
   // rewrite first line to insert actual source position
-  stackLines[1] = `    at ${parsedInfos.location.methodName} (${parsedInfos.location.source}:${parsedInfos.location.line}:${parsedInfos.location.column})`;
-  stackLines.splice(2, 0, `    | ${parsedInfos.location.lineText}`);
-  stackLines.length = 6; // no need for huge stack traces
+  stackLines[1] = `    at ${location.methodName} (${location.source}:${location.line}:${location.column})`;
+  stackLines.splice(2, 0, `    | ${location.lineText}`);
+  stackLines.length = 5; // no need for huge stack traces
   err.stack = stackLines.join('\n');
 
   return err;

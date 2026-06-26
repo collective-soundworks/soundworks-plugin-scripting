@@ -5,9 +5,6 @@ import { isString, isPlainObject, counter } from '@ircam/sc-utils';
 import { ServerPlugin } from '@soundworks/core/server.js';
 import pluginFilesystem from '@soundworks/plugin-filesystem/server.js';
 import esbuild from 'esbuild';
-import stackTraceParser from 'stacktrace-parser';
-import { SourceMapConsumer } from 'source-map';
-import sourceMapConvert from 'convert-source-map';
 
 import { sanitizeScriptName, kScriptStore } from './utils.js';
 import SharedScript from './SharedScript.js';
@@ -146,50 +143,6 @@ export default class ServerPluginScripting extends ServerPlugin {
         }
 
         await this.#updateInternalState();
-      }
-    });
-
-    // Parse source maps to retrieve readable infos from runtime error reporting
-    this.server.stateManager.registerUpdateHook(`sw:plugin:${this.id}:script`, async (updates, values) => {
-      if (updates.runtimeError) {
-        const { source, stack, message } = updates.runtimeError;
-
-        const code = source === 'node' ?  values.nodeBuild : values.browserBuild;
-        const sourceMap = code.split('//#')[1];
-        const sourceMapJson = sourceMapConvert.fromComment(`//#${sourceMap}`).toJSON();
-        // ok, async constructor... so weird...
-        const consumer = await new SourceMapConsumer(sourceMapJson);
-        // Array of { file: '', methodName: 'Module.enter', arguments: [], lineNumber: 193, column: 9 }
-        const parsedStack = stackTraceParser.parse(stack);
-        const first = parsedStack[0];
-        const location = consumer.originalPositionFor({
-          line: first.lineNumber,
-          column: first.column,
-        });
-        // format err message on the model of esbuild, so front end can parse them in unified way
-        location.file = location.source;
-
-        if (location.source !== null) {
-          // grab line text
-          const originalSource = consumer.sourceContentFor(location.source);
-          location.lineText = originalSource.split('\n')[location.line - 1];
-          // can be useful too
-          if (first.methodName) {
-            location.methodName = first.methodName;
-          }
-        }
-        // improve error message with found method name
-        // @note 202411 - thanks for the useful comment above... is this a todo?
-        // @todo - recheck this, seems not finished
-        let text = message;
-        // release sourcemap consumer resources
-        // @note - might share / reuse this resource
-        consumer.destroy();
-
-        return {
-          ...updates,
-          runtimeError: { source, message, text, location },
-        };
       }
     });
 
@@ -355,7 +308,6 @@ export default class ServerPluginScripting extends ServerPlugin {
         const buildContexts = [];
 
         // setup esbuild, await that first builds for both browser and node are done
-        // eslint-disable-next-line no-async-promise-executor
         await new Promise(async (resolve) => {
           if (verbose) {
             console.log('> create script:', name, filename);
