@@ -24,31 +24,35 @@ export const kGetBrowserBuildURL = Symbol('soundworks:plugin-scripting:get-node-
  */
 /** @private */
 if (isBrowser()) {
-  const testReportError = evt => {
+  const catchScriptError = evt => {
     const err = evt.reason || evt.error;
 
     scripts.forEach(script => {
-      if (err.stack.includes(script[kGetBrowserBuildURL].toString())) {
+      // we slice the actual source code to 1000 character to avoid huge comparison
+      // that seems to fail sometimes, for some unknown reason...
+      if (err.stack.includes(script[kGetBrowserBuildURL].toString().slice(0, 1000))) {
         evt.stopPropagation();
         script.reportRuntimeError(err);
       }
     });
   };
 
-  window.addEventListener('error', testReportError);
-  window.addEventListener('unhandledrejection', testReportError);
+  window.addEventListener('error', catchScriptError);
+  window.addEventListener('unhandledrejection', catchScriptError);
 } else {
-  const testReportError = err => {
+  const catchScriptError = err => {
     scripts.forEach(script => {
-      // if the error comes from this script, report it
-      if (err.stack.includes(script[kGetNodeBuildURL])) {
+      // we slice the actual source code to 1000 character to avoid huge comparison
+      // that seems to fail sometimes, for some unknown reason...
+      if (err.stack.includes(script[kGetNodeBuildURL].toString().slice(0, 1000))) {
         script.reportRuntimeError(err);
       }
     });
   };
 
-  process.prependListener('uncaughtException', testReportError);
-  process.prependListener('unhandledRejection', testReportError);
+
+  process.prependListener('uncaughtException', catchScriptError);
+  process.prependListener('unhandledRejection', catchScriptError);
 }
 
 /**
@@ -102,7 +106,6 @@ export default class SharedScript {
   get name() {
     return this.#state.get('name');
   }
-
 
   /**
    * Filename from which the script is created.

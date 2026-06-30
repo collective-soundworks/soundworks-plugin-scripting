@@ -22,3 +22,10 @@
 //   await new Promise(resolve => setTimeout(resolve, 1));
 //   throw new Error('async error');
 // }
+
+
+// 6. doesNotExists in async
+export async function execute() {
+  await new Promise(resolve => setTimeout(resolve, 1));
+  console.log(doesNotExists);
+}
