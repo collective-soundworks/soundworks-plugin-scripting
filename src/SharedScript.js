@@ -121,7 +121,20 @@ export default class SharedScript {
    * @type {string}
    */
   get buildError() {
-    return this.#state.get('buildError');
+    let buildError = null;
+
+    if (this.#state.get('buildError')) {
+      const errInfos = this.#state.get('buildError');
+      buildError = `
+[Build Error] ${errInfos.text}
+
+  ${errInfos.location.file}:${errInfos.location.line}:${errInfos.location.column}
+    ${errInfos.location.line} | ${errInfos.location.lineText}
+
+`
+    }
+
+    return buildError;
   }
 
   /**
@@ -136,7 +149,9 @@ export default class SharedScript {
   /**
    * Dynamically import the bundled module.
    *
-   * @returns {Promise<Module>} Promise which fulfills to the JS module.
+   * @returns {Promise<Module>|null} Promise which fulfills to the JS module.
+   *  Returns null if importing the script failed, e.g. if a runtime error occurred
+   *  at loading.
    */
   async import() {
     const filename = this.#state.get('filename');
@@ -204,7 +219,7 @@ export default class SharedScript {
       toImport = this.#nodeBuildURL;
     }
 
-    let mod;
+    let mod = null;
 
     try {
       mod = await import(/* webpackIgnore: true */toImport);
