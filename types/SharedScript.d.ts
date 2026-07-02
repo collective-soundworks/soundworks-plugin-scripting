@@ -44,9 +44,11 @@ export default class SharedScript {
     /**
      * Dynamically import the bundled module.
      *
-     * @returns {Promise<Module>} Promise which fulfills to the JS module.
+     * @returns {Promise<Module>|null} Promise which fulfills to the JS module.
+     *  Returns null if importing the script failed, e.g. if a runtime error occurred
+     *  at loading.
      */
-    import(): Promise<Module>;
+    import(): Promise<Module> | null;
     /**
      * Manually report an error catched in try / catch block.
      *
