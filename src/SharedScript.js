@@ -131,7 +131,7 @@ export default class SharedScript {
   ${errInfos.location.file}:${errInfos.location.line}:${errInfos.location.column}
     ${errInfos.location.line} | ${errInfos.location.lineText}
 
-`
+`;
     }
 
     return buildError;
