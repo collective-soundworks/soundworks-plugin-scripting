@@ -1,4 +1,5 @@
 import path from 'node:path';
+import fs from 'node:fs';
 
 import { Server } from '@soundworks/core/server.js';
 import { assert } from 'chai';
@@ -127,18 +128,11 @@ describe(`ServerPluginScripting`, () => {
         assert.isNotNull(someScript[kGetBrowserBuild]);
         assert.isNotNull(someScript[kGetNodeBuild]);
 
-        // @todo - make this more robust, e.g.
-        // const expected = fs.readdirSync(staticScripts, { recursive: true });
-        // but filter only files
-        const expected = [
-          'export-default.js',
-          'export-named.js',
-          'import-package.js',
-          'import-relative.js',
-          'scripting-context.js',
-          'throw-in-timeout.js',
-          'utils/math.js',
-        ];
+        const expected = fs.readdirSync(staticScripts, {
+          recursive: true,
+          withFileTypes: true,
+        }).filter(dirent => dirent.isFile() && dirent.name !== '.DS_Store')
+          .map(dirent => path.join(path.relative(staticScripts, dirent.parentPath), dirent.name))
 
         assert.deepEqual(plugin.getList(), expected);
         assert.equal(plugin[kScriptInfosByName].size, expected.length);

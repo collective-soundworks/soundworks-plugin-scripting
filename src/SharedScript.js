@@ -30,7 +30,7 @@ if (isBrowser()) {
     scripts.forEach(script => {
       // we slice the actual source code to 1000 character to avoid huge comparison
       // that seems to fail sometimes, for some unknown reason...
-      if (err.stack.includes(script[kGetBrowserBuildURL].toString().slice(0, 1000))) {
+      if (err.stack.includes(script[kGetBrowserBuildURL]?.toString().slice(0, 1000))) {
         evt.stopPropagation();
         script.reportRuntimeError(err);
       }
@@ -44,7 +44,7 @@ if (isBrowser()) {
     scripts.forEach(script => {
       // we slice the actual source code to 1000 character to avoid huge comparison
       // that seems to fail sometimes, for some unknown reason...
-      if (err.stack.includes(script[kGetNodeBuildURL].toString().slice(0, 1000))) {
+      if (err.stack.includes(script[kGetNodeBuildURL]?.toString().slice(0, 1000))) {
         script.reportRuntimeError(err);
       }
     });
