@@ -137,7 +137,7 @@ describe(`ClientPluginScripting`, () => {
       await serverPlugin.switch({ dirname: staticScripts });
 
       const pathname = path.join(import.meta.dirname, 'static-scripts', 'filter-platform.js');
-      const initialContent = `export default 'coucou';`
+      const initialContent = `export default 'coucou';`;
       // reset initial content
       fs.writeFileSync(pathname, initialContent);
 

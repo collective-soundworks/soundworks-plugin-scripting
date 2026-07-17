@@ -318,7 +318,7 @@ export default class ServerPluginScripting extends ServerPlugin {
         const buildIgnored = {
           browser: false,
           node: false,
-        }
+        };
         let buildResult = {
           buildError: null,
           runtimeError: null,
@@ -330,8 +330,8 @@ export default class ServerPluginScripting extends ServerPlugin {
           const platform = platforms[index];
           const buildCounter = counter();
 
-          // allow to filter the platform from the script itself,
-          // // target: node-only
+          // allow to filter the platform from within the script with a comment on first line
+          // i.e. `// target: node` or `// target: browser`
           const filterPlatformPlugin = {
             name: `filter-${platform}`,
             setup(build) {
@@ -356,7 +356,7 @@ export default class ServerPluginScripting extends ServerPlugin {
                 }
               });
             },
-          }
+          };
 
           const updateStatePlugin = {
             name: `${platform}-state`,

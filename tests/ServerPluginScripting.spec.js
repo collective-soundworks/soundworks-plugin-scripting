@@ -132,7 +132,7 @@ describe(`ServerPluginScripting`, () => {
           recursive: true,
           withFileTypes: true,
         }).filter(dirent => dirent.isFile() && dirent.name !== '.DS_Store')
-          .map(dirent => path.join(path.relative(staticScripts, dirent.parentPath), dirent.name))
+          .map(dirent => path.join(path.relative(staticScripts, dirent.parentPath), dirent.name));
 
         assert.deepEqual(plugin.getList(), expected);
         assert.equal(plugin[kScriptInfosByName].size, expected.length);
