@@ -5,8 +5,8 @@
 import path from 'node:path';
 import fs from 'node:fs';
 
-const uncommented = `return await import(/* webpackIgnore: true */toImport);`
-const commented = `// return await import(/* webpackIgnore: true */toImport);`
+const uncommented = `mod = await import(/* webpackIgnore: true */toImport);`
+const commented = `// mod = await import(/* webpackIgnore: true */toImport);`
 
 const filename = path.join('src', 'SharedScript.js');
 let content = fs.readFileSync(filename).toString();

@@ -21,8 +21,8 @@ export const kGetBrowserBuildURL = Symbol('soundworks:plugin-scripting:get-node-
 
 /**
  * Handle async errors
+ * @private
  */
-/** @private */
 if (isBrowser()) {
   const catchScriptError = evt => {
     const err = evt.reason || evt.error;
