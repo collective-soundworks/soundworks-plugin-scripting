@@ -121,6 +121,24 @@ describe(`SharedScript`, () => {
 
       assert.deepEqual(forwardContext(), ctx);
     });
+
+    it('should retrieve fresh module on consecutive imports', async () => {
+      const server = new Server(config);
+      server.pluginManager.register('scripting', ServerPluginScripting, { dirname });
+      await server.start();
+
+      const plugin = await server.pluginManager.get('scripting');
+
+      for (let i = 0; i < 2; i++) {
+        const script = await plugin.attach('modify-inner');
+        const mod = await script.import();
+        const result = mod.modifyInner();
+        assert.equal(result, null);
+        // await delay(1000);
+      }
+
+      await server.stop();
+    });
   });
 
   describe('# script.detach()', async () => {

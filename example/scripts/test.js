@@ -1,4 +1,3 @@
-
 // 1. Top level crash
 // console.log(doesNotExist);
 
@@ -23,9 +22,17 @@
 //   throw new Error('async error');
 // }
 
-
 // 6. doesNotExists in async
 export async function execute() {
   await new Promise(resolve => setTimeout(resolve, 1));
   console.log(doesNotExists);
+}
+
+// 7. load twice and modify inner state
+let inner = null;
+
+export async function checkInner() {
+  console.log(inner);
+  inner = [];
+  await new Promise(resolve => setTimeout(resolve, 1));
 }

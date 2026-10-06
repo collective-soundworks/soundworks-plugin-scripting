@@ -304,110 +304,149 @@ export default class ServerPluginScripting extends ServerPlugin {
           filename,
         });
 
-        const verbose = this.options.verbose;
-        const buildContexts = [];
-
         // setup esbuild, await that first builds for both browser and node are done
-        await new Promise(async (resolve) => {
-          if (verbose) {
-            console.log('> create script:', name, filename);
-          }
+        const verbose = this.options.verbose;
 
-          const platforms = ['browser', 'node'];
-          const buildIds = [null, null];
-          let buildResult = {
-            buildError: null,
-            runtimeError: null,
+        if (verbose) {
+          console.log('> create script:', name, filename);
+        }
+
+        const platforms = ['browser', 'node'];
+        const buildContexts = [];
+        const { promise, resolve } = Promise.withResolvers();
+        const buildIds = [null, null];
+        const buildIgnored = {
+          browser: false,
+          node: false,
+        };
+        let buildResult = {
+          buildError: null,
+          runtimeError: null,
+        };
+
+        for (let index = 0; index < platforms.length; index++) {
+          // one counter for each platform, on build end, if both build ids are
+          // matching, update the state with build results
+          const platform = platforms[index];
+          const buildCounter = counter();
+
+          // allow to filter the platform from within the script with a comment on first line
+          // i.e. `// target: node` or `// target: browser`
+          const filterPlatformPlugin = {
+            name: `filter-${platform}`,
+            setup(build) {
+              // Load ".txt" files and return an array of words
+              build.onLoad({ filter: new RegExp(filename) }, async (args) => {
+                const content = await fs.promises.readFile(args.path, 'utf8');
+                const firstLine = content.split(/\r?\n/)[0];
+                const otherPlatform = platforms[1 - index];
+                const filterRegexp = new RegExp(`target: ${otherPlatform}`);
+
+                // the script has been marked for the other platform, ignore it
+                if (filterRegexp.test(firstLine)) {
+                  if (verbose) {
+                    console.log(`> "${filename}" script: platform ${platform} filtered`);
+                  }
+                  // mark as ignored for `${platform}-state`::onEnd plugin
+                  buildIgnored[platform] = true;
+                  // return empty content to go through build pipeline
+                  return {
+                    contents: '',
+                  };
+                }
+              });
+            },
           };
 
-          for (let index = 0; index < platforms.length; index++) {
-            // one counter for each platform, on build end, if both build ids are
-            // matching, update the state with build results
-            const platform = platforms[index];
-            const buildCounter = counter();
+          const updateStatePlugin = {
+            name: `${platform}-state`,
+            setup(build) {
+              build.onEnd(result => {
+                const filename = build.initialOptions.entryPoints[0];
 
-            const updateStatePlugin = {
-              name: `${platform}-state`,
-              setup(build) {
-                build.onEnd(result => {
-                  const filename = build.initialOptions.entryPoints[0];
+                if (verbose) {
+                  console.log(`> update script (${platform}):`, filename);
+                }
 
-                  if (verbose) {
-                    console.log(`> update script (${platform}):`, filename);
+                const buildId = buildCounter();
+                buildIds[index] = buildId;
+
+                // populate build results
+                if (result.errors.length > 0) {
+                  // there can be a concurrency when a file is deleted or renamed where
+                  // the watcher tries to rebuild before `esbuild.dispose()` fulfills
+                  if (!/^Could not resolve/.test(result.errors[0].text)) {
+                    buildResult.buildError = result.errors[0];
                   }
+                } else {
+                  buildResult[`${platform}Build`] = result.outputFiles[0].text;
+                }
 
-                  const buildId = buildCounter();
-                  buildIds[index] = buildId;
-                  // populate build results
-                  if (result.errors.length > 0) {
-                    // there can be a concurrency when a file is deleted or renamed where
-                    // the watcher tries to rebuild before `esbuild.dispose()` fulfills
-                    if (!/^Could not resolve/.test(result.errors[0].text)) {
-                      buildResult.buildError = result.errors[0];
-                    }
-                  } else {
-                    buildResult[`${platform}Build`] = result.outputFiles[0].text;
-                  }
+                if (buildIgnored[platform] === true) {
+                  buildResult[`${platform}Build`] = null;
+                  buildIgnored[platform] = false; // reset for next build
+                }
 
-                  // if both build ids are the same, update state with build results
-                  if (buildIds[0] === buildIds[1]) {
-                    state.set({ ...buildResult });
-                    // reset build results for next build
-                    buildResult = {
-                      buildError: null,
-                      runtimeError: null,
-                    };
+                // if `buildIds` is filled with the same id, we can update the state and resolve
+                if (!buildIds.some(el => el !== buildId)) {
+                  state.set({ ...buildResult });
+                  // reset build results for next build
+                  buildResult = {
+                    buildError: null,
+                    runtimeError: null,
+                  };
 
-                    resolve();
-                  }
+                  resolve();
+                }
+              });
+            },
+          };
+
+          const plugins = [filterPlatformPlugin, updateStatePlugin];
+
+          // @todo - define the behavior we want on browsers
+          // cf. https://github.com/evanw/esbuild/issues/1492#issuecomment-891676215
+          if (platform === 'node') {
+            const importMetaUrlPlugin = {
+              name: 'import.meta.url',
+              setup({ onLoad }) {
+                onLoad({ filter: /()/, namespace: 'file' }, args => {
+                  // `args.path` is absolute and then relies on the server filesystem.
+                  // We need to make it dynamic according `process.cwd()` so that
+                  // clients can tap into their own filesystem.
+                  const localUrl = url.pathToFileURL(args.path).href;
+                  const dynamicUrl = `'${localUrl.replace(process.cwd(), '\' + process.cwd() + \'')}'`;
+
+                  let code = fs.readFileSync(args.path, 'utf8');
+                  code = code.replace(/\bimport\.meta\.url\b/g, dynamicUrl);
+
+                  return { contents: code };
                 });
               },
             };
 
-            const plugins = [updateStatePlugin];
-
-            // @todo - define the behavior we want on browsers
-            // cf. https://github.com/evanw/esbuild/issues/1492#issuecomment-891676215
-            if (platform === 'node') {
-              const importMetaUrlPlugin = {
-                name: 'import.meta.url',
-                setup({ onLoad }) {
-                  onLoad({ filter: /()/, namespace: 'file' }, args => {
-                    // `args.path` is absolute and then relies on the server filesystem.
-                    // We need to make it dynamic according `process.cwd()` so that
-                    // clients can tap into their own filesystem.
-                    const localUrl = url.pathToFileURL(args.path).href;
-                    const dynamicUrl = `'${localUrl.replace(process.cwd(), '\' + process.cwd() + \'')}'`;
-
-                    let code = fs.readFileSync(args.path, 'utf8');
-                    code = code.replace(/\bimport\.meta\.url\b/g, dynamicUrl);
-
-                    return { contents: code };
-                  });
-                },
-              };
-
-              plugins.push(importMetaUrlPlugin);
-            }
-
-            const ctx = await esbuild.context({
-              entryPoints: [filename],
-              write: false,
-              bundle: true,
-              format: 'esm',
-              platform: platform,
-              // minify: true,
-              // keepNames: true, // important for instanceof checks
-              sourcemap: 'inline', // not sure we can actually use that
-              metafile: true,
-              plugins,
-            });
-
-            await ctx.watch();
-
-            buildContexts.push(ctx);
+            plugins.push(importMetaUrlPlugin);
           }
-        });
+
+          const ctx = await esbuild.context({
+            entryPoints: [filename],
+            write: false,
+            bundle: true,
+            format: 'esm',
+            platform: platform,
+            // minify: true,
+            // keepNames: true, // important for instanceof checks
+            sourcemap: 'inline', // not sure we can actually use that
+            metafile: true,
+            plugins,
+          });
+
+          await ctx.watch();
+
+          buildContexts.push(ctx);
+        }
+
+        await promise;
 
         this[kScriptInfosByName].set(name, { state, buildContexts });
       }

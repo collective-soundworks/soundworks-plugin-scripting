@@ -30,7 +30,7 @@ if (isBrowser()) {
     scripts.forEach(script => {
       // we slice the actual source code to 1000 character to avoid huge comparison
       // that seems to fail sometimes, for some unknown reason...
-      if (err.stack.includes(script[kGetBrowserBuildURL].toString().slice(0, 1000))) {
+      if (err.stack.includes(script[kGetBrowserBuildURL]?.toString().slice(0, 1000))) {
         evt.stopPropagation();
         script.reportRuntimeError(err);
       }
@@ -44,7 +44,7 @@ if (isBrowser()) {
     scripts.forEach(script => {
       // we slice the actual source code to 1000 character to avoid huge comparison
       // that seems to fail sometimes, for some unknown reason...
-      if (err.stack.includes(script[kGetNodeBuildURL].toString().slice(0, 1000))) {
+      if (err.stack.includes(script[kGetNodeBuildURL]?.toString().slice(0, 1000))) {
         script.reportRuntimeError(err);
       }
     });
@@ -175,8 +175,9 @@ export default class SharedScript {
     // - 2024/07 - Still experimental in node 22.5
     // Error: Only URLs with a scheme in: file, data, and node are supported by
     // the default ESM loader. Received protocol 'blob:', cf.:
-    // - <https://github.com/nodejs/node/issues/47573>
     // - <https://github.com/node-loader/node-loader-core/issues/14>
+    // - <https://github.com/nodejs/node/issues/47573>
+    // - <https://github.com/nodejs/node/issues/61013>
     if (isBrowser()) {
       URL.revokeObjectURL(this.#browserBuildURL);
 
@@ -213,7 +214,14 @@ export default class SharedScript {
       // to not terminate the process when it finds the pattern in the error stack.
       // Any modification here should take this question into account.
 
-      this.#nodeBuildURL = 'data:text/javascript;base64,' + btoa(code);
+      // fix https://github.com/collective-soundworks/soundworks-plugin-scripting/issues/4
+      // this solution is a bit brute force, but allows the source map to stay sound
+      // (hopefully we will be able to remove this brach at some point...)
+      const lines = code.split('\n');
+      lines[0] = `${lines[0]} // ${Math.random()}`;
+      const uniqueCode = lines.join('\n');
+
+      this.#nodeBuildURL = 'data:text/javascript;base64,' + btoa(uniqueCode);
 
       // silly issue with documentation.js: https://github.com/documentationjs/documentation/issues/1149
       toImport = this.#nodeBuildURL;

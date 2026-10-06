@@ -1,4 +1,5 @@
 import path from 'node:path';
+import fs from 'node:fs';
 
 import { Client } from '@soundworks/core/client.js';
 import { Server } from '@soundworks/core/server.js';
@@ -130,6 +131,63 @@ describe(`ClientPluginScripting`, () => {
       assert.isNotNull(script[kGetNodeBuild]);
 
       await client.stop();
+    });
+
+    it('should be able to filter build target from the script', async () => {
+      await serverPlugin.switch({ dirname: staticScripts });
+
+      const pathname = path.join(import.meta.dirname, 'static-scripts', 'filter-platform.js');
+      const initialContent = `export default 'coucou';`;
+      // reset initial content
+      fs.writeFileSync(pathname, initialContent);
+
+      const client = new Client(config);
+      client.pluginManager.register('scripting', ClientPluginScripting);
+      await client.start();
+
+      const plugin = await client.pluginManager.get('scripting');
+      const script = await plugin.attach('filter-platform.js');
+
+      let testCase = 0;
+
+      const { promise, resolve } = Promise.withResolvers();
+
+      script.onUpdate(async updates => {
+        switch (testCase) {
+          // isomorphic
+          case 0: {
+            assert.isNotNull(updates.browserBuild);
+            assert.isNotNull(updates.nodeBuild);
+
+            // prepare test case 1
+            testCase = 1;
+            const newContent = `// target: node\n${initialContent}`;
+            fs.writeFileSync(pathname, newContent);
+            break;
+          }
+          // node-only
+          case 1: {
+            assert.isNull(updates.browserBuild);
+            assert.isNotNull(updates.nodeBuild);
+
+            // prepare test case 1
+            testCase = 2;
+            const newContent = `// target: browser\n${initialContent}`;
+            fs.writeFileSync(pathname, newContent);
+            break;
+          }
+          // browser-only
+          case 2: {
+            assert.isNotNull(updates.browserBuild);
+            assert.isNull(updates.nodeBuild);
+
+            resolve();
+            break;
+          }
+        }
+      }, true);
+
+      return promise;
     });
   });
 
