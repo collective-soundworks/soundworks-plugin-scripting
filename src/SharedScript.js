@@ -215,6 +215,8 @@ export default class SharedScript {
       // Any modification here should take this question into account.
 
       // fix https://github.com/collective-soundworks/soundworks-plugin-scripting/issues/4
+      // this solution is a bit brute force, but allows the source map to stay sound
+      // (hopefully we will be able to remove this brach at some point...)
       const lines = code.split('\n');
       lines[0] = `${lines[0]} // ${Math.random()}`;
       const uniqueCode = lines.join('\n');
